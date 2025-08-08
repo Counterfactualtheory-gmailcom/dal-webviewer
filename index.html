@@ -1,14 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DAL Answer Viewer</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:16px; line-height:1.45}
-    a{word-break:break-word; text-decoration:underline}
-    pre,code{white-space:pre-wrap; word-break:break-word}
-    .wrap{max-width:900px; margin:0 auto}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:16px; line-height:1.5;}
+    .wrap{max-width:900px; margin:0 auto;}
+    a{word-break:break-word; text-decoration:underline;}
+    pre,code{white-space:pre-wrap; word-break:break-word;}
+    blockquote{margin:0 0 1em 0; padding-left:12px; border-left:4px solid #eee;}
+    table{border-collapse:collapse; width:100%}
+    th,td{border:1px solid #ddd; padding:8px; vertical-align:top;}
+    h1,h2,h3{margin-top:1.2em}
   </style>
   <!-- Tiny, zero-config Markdown parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -17,35 +21,41 @@
   <div class="wrap" id="out">Waiting for content…</div>
 
   <script>
-    // Harden marked a bit
+    // Configure marked (keep headings stable, no email mangling)
     marked.setOptions({ mangle:false, headerIds:false });
 
-    function render(md){
-      // Remove control tags from the app
-      md = (md || '')
+    function clean(md){
+      // Remove control tags coming from the app
+      return (md || '')
         .replace(/<<START ANSWER>>/g,'')
         .replace(/<<END ANSWER>>/g,'')
         .replace(/\[COMPLETED\]/g,'')
         .trim();
+    }
 
-      // Convert Markdown -> HTML
-      const html = marked.parse(md);
-
-      // Inject and fix links to open externally
+    function render(md){
+      const html = marked.parse( clean(md) );
       const out = document.getElementById('out');
       out.innerHTML = html;
-      out.querySelectorAll('a').forEach(a=>{
+
+      // Ensure hyperlinks are clickable and open out of the webview
+      out.querySelectorAll('a').forEach(a => {
         a.target = '_blank';
         a.rel = 'noopener';
       });
     }
 
-    // Receive content from Thunkable Web Viewer
-    window.addEventListener('message', (e)=>{
+    // 1) Tell Thunkable we’re ready (this triggers your IF message = "ready")
+    window.addEventListener('DOMContentLoaded', () => {
+      try { window.parent.postMessage('ready', '*'); } catch(e){}
+    });
+
+    // 2) Receive markdown content from Thunkable Web Viewer (call Web_Viewer -> Post Message)
+    window.addEventListener('message', (e) => {
       try { render(e.data); } catch(err){ console.error(err); }
     }, false);
 
-    // Optional: allow quick manual test by pasting content via hash
+    // 3) Optional: quick manual test by pasting encoded content after # in the URL
     if (location.hash && location.hash.length > 1){
       render(decodeURIComponent(location.hash.slice(1)));
     }
