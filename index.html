@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAL Answer</title>
+  <style>
+    body{margin:0;padding:12px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.45;background:#f7f7f7}
+    .container{border:3px solid #F0C40F;border-radius:12px;padding:12px;min-height:200px;background:#fff}
+    a{word-break:break-word;}
+  </style>
+  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+</head>
+<body>
+  <div class="container" id="out">READY</div>
+  <script>
+    const out = document.getElementById('out');
+    function safe(html){
+      html = String(html || '');
+      html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
+      html = html.replace(/\son\w+="[^"]*"/gi,'');
+      return html;
+    }
+    ThunkableWebviewerExtension.receiveMessage(function(message){
+      try{
+        const html = safe(message);
+        if (html.trim()) out.innerHTML = html;
+        else out.textContent = '(empty message)';
+      }catch(e){
+        out.textContent = 'Render error: '+e;
+      }
+    });
+  </script>
+</body>
+</html>
