@@ -5,27 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DAL Answer Viewer</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:16px; line-height:1.5;}
-    .wrap{max-width:900px; margin:0 auto;}
-    a{word-break:break-word; text-decoration:underline;}
-    pre,code{white-space:pre-wrap; word-break:break-word;}
-    blockquote{margin:0 0 1em 0; padding-left:12px; border-left:4px solid #eee;}
-    table{border-collapse:collapse; width:100%}
-    th,td{border:1px solid #ddd; padding:8px; vertical-align:top;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:16px;line-height:1.5;background:#f7f7f7}
+    .wrap{max-width:900px;margin:0 auto;background:#fff;border:3px solid #F0C40F;border-radius:12px;padding:16px}
+    a{word-break:break-word;text-decoration:underline}
+    pre,code{white-space:pre-wrap;word-break:break-word}
+    blockquote{margin:0 0 1em 0;padding-left:12px;border-left:4px solid #eee}
+    table{border-collapse:collapse;width:100%}
+    th,td{border:1px solid #ddd;padding:8px;vertical-align:top}
     h1,h2,h3{margin-top:1.2em}
   </style>
-  <!-- Tiny, zero-config Markdown parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <div class="wrap" id="out">Waiting for content…</div>
 
   <script>
-    // Configure marked (keep headings stable, no email mangling)
-    marked.setOptions({ mangle:false, headerIds:false });
+    // Configure Marked
+    marked.setOptions({
+      mangle:false,
+      headerIds:false,
+      gfm:true
+    });
 
-    function clean(md){
-      // Remove control tags coming from the app
+    // 1) Strip system tags
+    function stripTags(md){
       return (md || '')
         .replace(/<<START ANSWER>>/g,'')
         .replace(/<<END ANSWER>>/g,'')
@@ -33,31 +36,40 @@
         .trim();
     }
 
+    // 2) Promote bare URLs to Markdown autolinks (<https://…>)
+    //    (so even plain URLs become clickable)
+    function autolinkBare(md){
+      // Don’t touch already-linked markdown [text](url)
+      // Wrap any remaining bare http(s) URLs in <...>
+      return md.replace(/(?<!\])\bhttps?:\/\/[^\s)><]+/g, (u) => `<${u}>`);
+    }
+
     function render(md){
-      const html = marked.parse( clean(md) );
+      const prepared = autolinkBare( stripTags(md) );
+      const html = marked.parse(prepared);
       const out = document.getElementById('out');
       out.innerHTML = html;
 
-      // Ensure hyperlinks are clickable and open out of the webview
-      out.querySelectorAll('a').forEach(a => {
+      // Ensure links open outside the webview
+      out.querySelectorAll('a').forEach(a=>{
         a.target = '_blank';
         a.rel = 'noopener';
       });
     }
 
-    // 1) Tell Thunkable we’re ready (this triggers your IF message = "ready")
+    // Tell Thunkable we're ready → your block checks message == "ready"
     window.addEventListener('DOMContentLoaded', () => {
       try { window.parent.postMessage('ready', '*'); } catch(e){}
     });
 
-    // 2) Receive markdown content from Thunkable Web Viewer (call Web_Viewer -> Post Message)
+    // Receive markdown from Thunkable (Web_Viewer → Post Message)
     window.addEventListener('message', (e) => {
-      try { render(e.data); } catch(err){ console.error(err); }
+      try { render(String(e.data || '')); } catch(err){ console.error(err); }
     }, false);
 
-    // 3) Optional: quick manual test by pasting encoded content after # in the URL
+    // Manual test via URL hash (optional)
     if (location.hash && location.hash.length > 1){
-      render(decodeURIComponent(location.hash.slice(1)));
+      try { render(decodeURIComponent(location.hash.slice(1))); } catch(e){}
     }
   </script>
 </body>
