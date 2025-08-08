@@ -3,63 +3,52 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DAL Answer</title>
+  <title>DAL Answer Viewer</title>
   <style>
-    body {
-      margin: 0;
-      padding: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.45;
-      background: #f7f7f7;
-    }
-    .container {
-      border: 3px solid #F0C40F;
-      border-radius: 12px;
-      padding: 12px;
-      min-height: 200px;
-      background: #fff;
-    }
-    a {
-      word-break: break-word;
-    }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:16px; line-height:1.45}
+    a{word-break:break-word; text-decoration:underline}
+    pre,code{white-space:pre-wrap; word-break:break-word}
+    .wrap{max-width:900px; margin:0 auto}
   </style>
-  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+  <!-- Tiny, zero-config Markdown parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-  <div class="container" id="out">READY</div>
+  <div class="wrap" id="out">Waiting for content…</div>
 
   <script>
-    const out = document.getElementById('out');
+    // Harden marked a bit
+    marked.setOptions({ mangle:false, headerIds:false });
 
-    function safe(html) {
-      html = String(html || '');
-      html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');  // remove script tags
-      html = html.replace(/\son\w+="[^"]*"/gi, ''); // remove inline event handlers
-      return html;
+    function render(md){
+      // Remove control tags from the app
+      md = (md || '')
+        .replace(/<<START ANSWER>>/g,'')
+        .replace(/<<END ANSWER>>/g,'')
+        .replace(/\[COMPLETED\]/g,'')
+        .trim();
+
+      // Convert Markdown -> HTML
+      const html = marked.parse(md);
+
+      // Inject and fix links to open externally
+      const out = document.getElementById('out');
+      out.innerHTML = html;
+      out.querySelectorAll('a').forEach(a=>{
+        a.target = '_blank';
+        a.rel = 'noopener';
+      });
     }
 
-    // Receive HTML content from Thunkable and display it
-    ThunkableWebviewerExtension.receiveMessage(function(message) {
-      try {
-        const html = safe(message);
-        if (html.trim()) {
-          out.innerHTML = html;
-        } else {
-          out.textContent = '(empty message)';
-        }
-      } catch (e) {
-        out.textContent = 'Render error: ' + e;
-      }
-    });
+    // Receive content from Thunkable Web Viewer
+    window.addEventListener('message', (e)=>{
+      try { render(e.data); } catch(err){ console.error(err); }
+    }, false);
 
-    // Handshake: tell Thunkable we’re ready to receive content
-    window.addEventListener('load', function() {
-      try {
-        ThunkableWebviewerExtension.postMessage('ready');
-      } catch (e) {
-        console.error('Handshake failed:', e);
-      }
-    });
+    // Optional: allow quick manual test by pasting content via hash
+    if (location.hash && location.hash.length > 1){
+      render(decodeURIComponent(location.hash.slice(1)));
+    }
   </script>
 </body>
 </html>
