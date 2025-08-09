@@ -50,16 +50,7 @@
       font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       white-space:pre-wrap;margin-top:8px;color:#bfe1ff; display:none;
     }
-
-    /* previously an inner “box” — now neutral so only the outer card shows */
-    .bubble{
-      border:none;
-      border-radius:0;
-      padding:0;
-      background:transparent;
-      color:#fff;
-      margin:0;
-    }
+    /* .bubble no longer used */
   </style>
 
   <!-- Markdown parser -->
@@ -76,10 +67,8 @@
 
 <body>
   <div class="wrap">
-    <div class="card">
-      <div id="out" class="bubble muted">Waiting for content…</div>
-      <div id="dbg" class="debug"></div>
-    </div>
+    <div id="out" class="card">Waiting for content…</div>
+    <div id="dbg" class="debug"></div>
   </div>
 
   <script>
