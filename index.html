@@ -5,67 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DAL Answer Viewer</title>
   <style>
-    :root { 
-      --wrap: 900px; 
-      --pad: 16px; 
-      --border: #e5e7eb; 
-      --accent: #f0c44c; /* Dal gold */
-      --text: #111827; 
-      --bg: #ffffff; /* Card background */
-      --bg-page: #002b45; /* Dal blue background */
-    }
-    html,body{
-      margin:0;
-      padding:0;
-      background:var(--bg-page);
-      color:var(--text);
-      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif
-    }
-    .wrap{
-      max-width:var(--wrap);
-      margin:0 auto;
-      padding:var(--pad)
-    }
-    .card{
-      background:var(--bg);
-      border:3px solid var(--accent);
-      border-radius:14px;
-      padding:var(--pad)
-    }
+    :root { --wrap: 900px; --pad: 16px; --accent: #f0c44c; --text:#111827; }
+    html,body{margin:0;padding:0;background:transparent;color:var(--text);
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
+    .card{background:#fff;border:3px solid var(--accent);border-radius:14px;padding:var(--pad)}
     a{word-break:break-word;text-decoration:underline}
     pre,code{white-space:pre-wrap;word-break:break-word}
-    blockquote{margin:0 0 1em 0;padding-left:12px;border-left:4px solid var(--border);color:#374151}
-    table{border-collapse:collapse;width:100%;margin:0.5em 0}
-    th,td{border:1px solid var(--border);padding:8px;vertical-align:top}
+    blockquote{margin:0 0 1em 0;padding-left:12px;border-left:4px solid #e5e7eb;color:#374151}
+    table{border-collapse:collapse;width:100%;margin:.5em 0}
+    th,td{border:1px solid #e5e7eb;padding:8px;vertical-align:top}
     h1,h2,h3{margin-top:1.2em}
     .muted{opacity:.85}
-    .debug{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;margin-top:8px;color:#374151}
+    .debug{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;margin-top:8px;color:#374151;display:none}
   </style>
 
   <!-- Markdown parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- Sanitizer -->
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <div id="out" class="muted">Waiting for content…</div>
-      <div id="dbg" class="debug" style="display:none"></div>
+      <div id="dbg" class="debug"></div>
     </div>
   </div>
 
-  <!-- Auto-link bare URLs/emails AFTER markdown -->
-  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
-
   <script>
+    // --- Config ---
     marked.setOptions({ gfm:true, breaks:true, mangle:false, headerIds:false });
 
-    const dbgEl = document.getElementById('dbg');
     const outEl = document.getElementById('out');
+    const dbgEl = document.getElementById('dbg');
     const showDebug = /[?&]debug=1\b/.test(location.search);
-
     function debug(msg){
       if(!showDebug) return;
       dbgEl.style.display = 'block';
@@ -76,38 +50,28 @@
       return String(md || '')
         .replace(/<<START ANSWER>>/g,'')
         .replace(/<<END ANSWER>>/g,'')
-        .replace(/\[COMPLETED\]\s*$/,'')
+        .replace(/\[COMPLETED\]/g,'')
         .trim();
     }
 
     function renderMarkdown(md){
-      const html = marked.parse(stripControlTags(md));
-      debug('marked html length=' + html.length);
-
-      const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
-
-      const linked = linkifyHtml(clean1, {
-        defaultProtocol: 'https',
-        nl2br: false,
-        validate: { url: (value) => /^https?:\/\//i.test(value) },
-        attributes: { rel: 'noopener', target: '_blank' }
-      });
-
-      const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target','rel'] });
-
-      outEl.innerHTML = clean2;
+      const html = marked.parse( stripControlTags(md) );
+      const clean = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
+      outEl.innerHTML = clean;
+      // Force all links to open outside the webview
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
     }
 
+    // Tell Thunkable we’re ready (your IF message == "ready")
     function notifyReady(){
-      try { window.parent.postMessage('ready','*'); debug('posted "ready" up to parent'); }
-      catch(e){ debug('postMessage error: ' + e); }
+      try { window.parent.postMessage('ready','*'); debug('posted "ready"'); } catch(e){ debug('postMessage error: '+e); }
     }
 
+    // Receive Markdown from Thunkable (Web_Viewer -> Post Message)
     window.addEventListener('message', (e) => {
       try {
-        debug('received message type=' + (typeof e.data) + ' length=' + (String(e.data||'').length));
         const payload = (e && e.data && e.data.payload) ? e.data.payload : e.data;
+        debug('received message length=' + String(payload||'').length);
         renderMarkdown(payload);
       } catch(err){
         outEl.textContent = 'Render error: ' + err;
@@ -115,6 +79,7 @@
       }
     }, false);
 
+    // Optional manual test: put URL-encoded markdown after #
     function hashTest(){
       if (location.hash && location.hash.length > 1){
         const md = decodeURIComponent(location.hash.slice(1));
@@ -123,10 +88,7 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      notifyReady();
-      hashTest();
-    });
+    window.addEventListener('DOMContentLoaded', () => { notifyReady(); hashTest(); });
   </script>
 </body>
 </html>
