@@ -82,6 +82,7 @@
     const outEl   = document.getElementById('out');
     const dbgEl   = document.getElementById('dbg');
     const showDebug = /[?&]debug=1\b/.test(location.search);
+    let linkHandlerAttached = false; // PATCH: ensure click handler added only once
 
     function debug(msg){
       if(!showDebug) return;
@@ -122,6 +123,24 @@
 
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+
+      // PATCH: open links externally via Thunkable so this screen stays put
+      if (!linkHandlerAttached) {
+        outEl.addEventListener('click', (e) => {
+          const a = e.target.closest && e.target.closest('a[href]');
+          if (!a) return;
+          const url = a.href;
+          if (/^https?:/i.test(url)) {
+            e.preventDefault();
+            try {
+              ThunkableWebviewerExtension.postMessage('OPEN::' + url);
+            } catch (err) {
+              window.open(url, '_blank'); // fallback
+            }
+          }
+        });
+        linkHandlerAttached = true;
+      }
     }
 
     let firstMessageReceived = false;
