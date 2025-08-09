@@ -4,49 +4,87 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DAL Answer Viewer</title>
+
   <style>
     :root{
-      --dal-blue:#002D72;      /* Dal brand blue */
-      --dal-gold:#f0c44c;      /* accent */
-      --wrap:900px;
-      --pad:16px;
-      --border:#e5e7eb;
-      --bg:#002D72;            /* page background */
-      --card:#0b3a8f;          /* deep blue card */
-      --text:#ffffff;          /* white text */
+      --wrap: 900px;
+      --pad: 16px;
+      --border: #e5e7eb;
+      --accent: #f0c44c;           /* Dal gold */
+      --text: #ffffff;             /* white text */
+      --bg: #0c2d5a;               /* Dal navy */
+      --bg-page: #0c2d5a;          /* page background same navy */
+      --card: #0c2d5a;             /* card fill same navy */
+      --muted: #dbe7ff;
     }
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+    html,body{
+      margin:0; padding:0;
+      background:var(--bg-page);
+      color:var(--text);
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      -webkit-text-size-adjust:100%;
+    }
     .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
-    .card{background:var(--card);border:3px solid var(--dal-gold);border-radius:14px;padding:var(--pad)}
-    a{color:var(--text); text-decoration:underline; word-break:break-word}
+    .card{
+      background:var(--card);
+      border:3px solid var(--accent);
+      border-radius:14px;
+      padding:var(--pad);
+      box-shadow: 0 2px 10px rgba(0,0,0,.15);
+      min-height: 60vh;
+    }
+
+    a{word-break:break-word;text-decoration:underline;color:#fff}
+    a:visited{color:#f5f5f5}
     pre,code{white-space:pre-wrap;word-break:break-word}
-    blockquote{margin:0 0 1em 0;padding-left:12px;border-left:4px solid var(--dal-gold);opacity:.95}
+    blockquote{
+      margin:0 0 1em 0;padding-left:12px;
+      border-left:4px solid var(--border);color:#eef2ff
+    }
     table{border-collapse:collapse;width:100%;margin:.5em 0}
-    th,td{border:1px solid var(--border);padding:8px;vertical-align:top;color:var(--text)}
+    th,td{border:1px solid var(--border);padding:8px;vertical-align:top}
     h1,h2,h3{margin-top:1.2em}
-    .muted{opacity:.9}
-    .debug{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;margin-top:8px;opacity:.9}
+    .muted{opacity:.9;color:var(--muted)}
+    .debug{
+      font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      white-space:pre-wrap;margin-top:8px;color:#bfe1ff; display:none;
+    }
+
+    /* inner “speech bubble” look, like your screenshot */
+    .bubble{
+      border:4px solid var(--accent);
+      border-radius:16px;
+      padding:14px 16px;
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      margin-bottom:14px;
+    }
   </style>
 
   <!-- Markdown parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- Sanitizer -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <!-- Auto-link bare URLs/emails AFTER markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
 </head>
+
 <body>
   <div class="wrap">
     <div class="card">
-      <div id="out" class="muted">Waiting for content…</div>
-      <div id="dbg" class="debug" style="display:none"></div>
+      <div id="out" class="bubble muted">Waiting for content…</div>
+      <div id="dbg" class="debug"></div>
     </div>
   </div>
 
   <script>
-    // --- Config ---
+    // ---------- config ----------
     marked.setOptions({ gfm:true, breaks:true, mangle:false, headerIds:false });
 
-    const dbgEl = document.getElementById('dbg');
-    const outEl = document.getElementById('out');
+    const outEl   = document.getElementById('out');
+    const dbgEl   = document.getElementById('dbg');
     const showDebug = /[?&]debug=1\b/.test(location.search);
 
     function debug(msg){
@@ -55,79 +93,96 @@
       dbgEl.textContent += (dbgEl.textContent ? '\n' : '') + msg;
     }
 
+    // remove control tags the model sometimes includes
     function stripControlTags(md){
       return String(md || '')
         .replace(/<<START ANSWER>>/g,'')
         .replace(/<<END ANSWER>>/g,'')
-        .replace(/\[COMPLETED\]\s*$/,'')
+        .replace(/\s*\[COMPLETED\]\s*$/,'')
         .trim();
     }
 
-    // Lightweight bare-URL linkifier (no external deps)
-    function linkifyBareUrls(html){
-      const urlRE = /(^|[\s(>])((https?:\/\/)[^\s<)]+)(?=$|[\s<)])/gi;
-      return html.replace(urlRE, (m, pre, url) => {
-        // avoid double-wrapping if already inside an anchor
-        if (/<a\s/i.test(m)) return m;
-        return `${pre}<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
-      });
-    }
+    function safeRender(md){
+      const raw = stripControlTags(md);
 
-    function renderMarkdown(md){
-      const parsed = marked.parse( stripControlTags(md) );
-      debug('marked html length=' + parsed.length);
+      // 1) Markdown -> HTML
+      const html = marked.parse(raw || '');
+      debug('marked html length=' + html.length);
 
-      // sanitize, linkify, sanitize again
-      const clean1 = DOMPurify.sanitize(parsed, { ADD_ATTR: ['target','rel'] });
-      const linked = linkifyBareUrls(clean1);
+      // 2) Sanitize HTML
+      const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
+
+      // 3) Linkify any remaining bare URLs/emails (if library present)
+      let linked = clean1;
+      try {
+        if (typeof linkifyHtml === 'function') {
+          linked = linkifyHtml(clean1, {
+            defaultProtocol: 'https',
+            nl2br: false,
+            validate: { url: (v) => /^https?:\/\//i.test(v) },
+            attributes: { rel: 'noopener', target: '_blank' }
+          });
+        } else {
+          debug('linkifyHtml missing; skipping linkify step');
+        }
+      } catch(e){
+        debug('linkify error: ' + e);
+      }
+
+      // 4) Final sanitize (anchors were added)
       const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target','rel'] });
 
-      outEl.innerHTML = clean2;
-
-      // enforce target/rel on any anchors
+      // 5) Inject & enforce target/rel on all links
+      outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
     }
 
-    // Tell Thunkable we're ready (your block listens for "ready")
-    function notifyReady(){
-      try { window.parent.postMessage('ready','*'); debug('posted "ready" to parent'); }
-      catch(e){ debug('postMessage error: ' + e); }
-    }
+    // ---------- Thunkable handshake ----------
+    let firstMessageReceived = false;
+    let readyPingerId = null;
 
-    // Receive Markdown from Thunkable → render it.
+    // 1) receive content from Thunkable Web_Viewer → Post Message
     window.addEventListener('message', (e) => {
       try {
-        const data = e && e.data;
-        debug('received message type=' + (typeof data));
-        // Ignore any accidental echo of "ready"
-        if (data === 'ready') { debug('ignored echo "ready"'); return; }
-
-        // Support plain string or {payload:"..."}
-        const payload = (data && typeof data === 'object' && 'payload' in data) ? data.payload : data;
-
-        if (typeof payload === 'string' && payload.trim()){
-          renderMarkdown(payload);
-        } else {
-          debug('empty/invalid payload; nothing to render');
-        }
+        firstMessageReceived = true;
+        if (readyPingerId) { clearInterval(readyPingerId); readyPingerId = null; }
+        const payload = (e && e.data && e.data.payload) ? e.data.payload : e.data;
+        debug('received message; type=' + (typeof payload) + ' length=' + (String(payload||'').length));
+        safeRender(payload);
       } catch(err){
         outEl.textContent = 'Render error: ' + err;
         debug('Render error: ' + (err && err.stack || err));
       }
     }, false);
 
-    // Optional manual test via #hash
+    // 2) tell Thunkable we’re ready – and keep pinging briefly in case timing is off
+    function pingReady(){
+      try {
+        window.parent.postMessage('ready', '*');  // your blocks check for "ready"
+        debug('posted "ready" to parent');
+      } catch(e){ debug('postMessage error: ' + e); }
+    }
+
+    // optional manual test: put encoded markdown after #
     function hashTest(){
       if (location.hash && location.hash.length > 1){
         const md = decodeURIComponent(location.hash.slice(1));
         debug('hash test length=' + md.length);
-        renderMarkdown(md);
+        safeRender(md);
       }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      notifyReady();
+      // ensure third-party libs loaded before we render
+      debug('DOMContentLoaded');
       hashTest();
+      pingReady();
+      // re-ping “ready” every 600ms for up to 6 seconds, or until first message arrives
+      let tries = 0;
+      readyPingerId = setInterval(() => {
+        if (firstMessageReceived || tries >= 10){ clearInterval(readyPingerId); readyPingerId = null; return; }
+        pingReady(); tries++;
+      }, 600);
     });
   </script>
 </body>
