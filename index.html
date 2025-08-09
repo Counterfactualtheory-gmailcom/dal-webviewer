@@ -69,6 +69,9 @@
   <!-- Auto-link bare URLs/emails AFTER markdown -->
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
+
+  <!-- IMPORTANT: Thunkable WebViewer bridge -->
+  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 </head>
 
 <body>
@@ -137,29 +140,30 @@
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
     }
 
-    // ---------- Thunkable handshake ----------
+    // ---------- Thunkable handshake (FIXED) ----------
+    // Use ThunkableWebviewerExtension instead of window.parent.postMessage
     let firstMessageReceived = false;
     let readyPingerId = null;
 
-    // 1) receive content from Thunkable Web_Viewer → Post Message
-    window.addEventListener('message', (e) => {
+    // 1) receive content from the app
+    ThunkableWebviewerExtension.receiveMessage(function (msg) {
       try {
         firstMessageReceived = true;
         if (readyPingerId) { clearInterval(readyPingerId); readyPingerId = null; }
-        const payload = (e && e.data && e.data.payload) ? e.data.payload : e.data;
+        // accept plain string or {payload:"..."}
+        const payload = (msg && typeof msg === 'object' && 'payload' in msg) ? msg.payload : msg;
         debug('received message; type=' + (typeof payload) + ' length=' + (String(payload||'').length));
         safeRender(payload);
       } catch(err){
         outEl.textContent = 'Render error: ' + err;
         debug('Render error: ' + (err && err.stack || err));
       }
-    }, false);
+    });
 
-    // 2) tell Thunkable we’re ready – and keep pinging briefly in case timing is off
     function pingReady(){
       try {
-        window.parent.postMessage('ready', '*');  // your blocks check for "ready"
-        debug('posted "ready" to parent');
+        ThunkableWebviewerExtension.postMessage('ready'); // your blocks check for "ready"
+        debug('posted "ready" via Thunkable extension');
       } catch(e){ debug('postMessage error: ' + e); }
     }
 
@@ -173,11 +177,10 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      // ensure third-party libs loaded before we render
       debug('DOMContentLoaded');
       hashTest();
+      // send ready immediately and then re-ping briefly to cover timing
       pingReady();
-      // re-ping “ready” every 600ms for up to 6 seconds, or until first message arrives
       let tries = 0;
       readyPingerId = setInterval(() => {
         if (firstMessageReceived || tries >= 10){ clearInterval(readyPingerId); readyPingerId = null; return; }
