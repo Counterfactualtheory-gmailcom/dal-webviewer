@@ -11,11 +11,11 @@
       --pad: 16px;
       --border: #e5e7eb;
       --accent: #f0c44c;           /* Dal gold */
-      --text: #ffffff;             /* white text */
+      --text: #ffffff;             /* body text */
       --bg: #0c2d5a;               /* Dal navy */
-      --bg-page: #0c2d5a;          /* page background same navy */
-      --card: #0c2d5a;             /* card fill same navy */
-      --muted: #bfe1ff;            /* link blue */
+      --bg-page: #0c2d5a;
+      --card: #0c2d5a;
+      --link: #bfe1ff;             /* link blue */
     }
 
     html,body{
@@ -26,7 +26,9 @@
       -webkit-text-size-adjust:100%;
     }
     .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
-    .card{
+
+    /* renamed to avoid collisions with LLM content */
+    .viewer-shell{
       background:var(--card);
       border:3px solid var(--accent);
       border-radius:14px;
@@ -35,7 +37,7 @@
       min-height: 60vh;
     }
 
-    /* hard reset: make the viewer a single box; kill any inner boxes */
+    /* --- Content area: force single-box look & white text --- */
     #out{
       border:0 !important;
       padding:0 !important;
@@ -43,47 +45,64 @@
       background:transparent !important;
       box-shadow:none !important;
       border-radius:0 !important;
-      color:var(--text) !important;              /* body text = white */
+      color:var(--text) !important;
     }
-    #out *{
-      border:0 !important;
-      box-shadow:none !important;
-      background:transparent !important;
-      border-radius:0 !important;
-      color:var(--text) !important;              /* descendants = white */
-    }
+    /* make everything inside #out white, except links */
+    #out :not(a){ color:var(--text) !important; }
+
+    /* keep links light blue */
     #out a, #out a:visited{
-      color:var(--muted) !important;             /* links = light blue */
+      color:var(--link) !important;
       text-decoration:underline;
+    }
+
+    /* neutralize any accidental “card” classes in the ANSWER content */
+    #out .card{
+      border:0 !important;
+      background:transparent !important;
+      box-shadow:none !important;
+      border-radius:0 !important;
+      padding:0 !important;
     }
 
     pre,code{white-space:pre-wrap;word-break:break-word}
     table{border-collapse:collapse;width:100%;margin:.5em 0}
     h1,h2,h3{margin-top:1.2em}
+    blockquote{
+      margin:0 0 1em 0;padding-left:12px;
+      border-left:4px solid var(--border);
+      color:var(--text);
+      opacity:.95;
+    }
 
+    .muted{opacity:.9;color:#cfe7ff} /* keep class for optional use elsewhere */
     .debug{
       font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       white-space:pre-wrap;margin-top:8px;color:#bfe1ff; display:none;
     }
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
-  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js?v=1.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js?v=1.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js?v=1.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js?v=1.0.4"></script>
+  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js?v=1.0.4"></script>
 </head>
 
 <body>
   <div class="wrap">
-    <div class="card">
-      <!-- removed class="muted" so text is white -->
+    <div class="viewer-shell">
+      <!-- REMOVED class="muted" so text renders white -->
       <div id="out">Waiting for content…</div>
       <div id="dbg" class="debug"></div>
     </div>
   </div>
 
   <script>
+    // version stamp to help bust cache in Thunkable (also update the ?v= above)
+    const VIEW_VERSION = '1.0.4';
+
     marked.setOptions({ gfm:true, breaks:true, mangle:false, headerIds:false });
 
     const outEl = document.getElementById('out');
@@ -106,9 +125,15 @@
 
     function safeRender(md){
       const raw = stripControlTags(md);
+
+      // 1) Markdown -> HTML
       const html = marked.parse(raw || '');
+      debug('marked html length=' + html.length + ' v=' + VIEW_VERSION);
+
+      // 2) Sanitize HTML
       const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
 
+      // 3) Linkify any remaining bare URLs/emails
       let linked = clean1;
       try {
         if (typeof linkifyHtml === 'function') {
@@ -121,11 +146,15 @@
         }
       } catch(e){ debug('linkify error: ' + e); }
 
+      // 4) Final sanitize
       const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target','rel'] });
+
+      // 5) Inject
       outEl.innerHTML = clean2 || '<span style="opacity:.7">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
     }
 
+    // --- Thunkable handshake ---
     let firstMessageReceived = false;
     let readyPingerId = null;
 
@@ -143,7 +172,7 @@
     });
 
     function pingReady(){
-      try { ThunkableWebviewerExtension.postMessage('ready'); }
+      try { ThunkableWebviewerExtension.postMessage('ready:' + VIEW_VERSION); }
       catch(e){ debug('postMessage error: ' + e); }
     }
 
