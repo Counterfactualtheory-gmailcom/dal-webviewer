@@ -1,1 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAL Answer (Android)</title>
+<style>
+  body{margin:0;padding:12px;background:#f7f7f7;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  .container{background:#fff;border:3px solid #F0C40F;border-radius:12px;padding:12px}
+  #out{font-size:16px}
+  a{word-break:break-all}
+</style>
+<script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+</head>
+<body>
+  <div class="container"><div id="out">READY</div></div>
 
+<script>
+  const out = document.getElementById('out');
+
+  function esc(s){
+    return String(s||'').replace(/[&<>"']/g, c => (
+      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+    ));
+  }
+  function linkify(s){
+    // escape first, then turn http/https into anchors
+    return esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+                 .replace(/\n/g,'<br>');
+  }
+
+  // Tell the app we’re ready (Android page)
+  try { ThunkableWebviewerExtension.postMessage('ready-android'); } catch(e){}
+
+  // Receive plain text from the app and render with clickable links
+  ThunkableWebviewerExtension.receiveMessage(function(message){
+    out.innerHTML = linkify(message);
+  });
+
+  // When a link is tapped, ask the native app to open it in Chrome
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a');
+    if(!a) return;
+    e.preventDefault();
+    try {
+      ThunkableWebviewerExtension.postMessage(JSON.stringify({type:'open-url', url:a.href}));
+    } catch(_){}
+  });
+</script>
+</body>
+</html>
