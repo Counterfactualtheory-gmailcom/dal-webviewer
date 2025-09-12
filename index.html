@@ -10,11 +10,13 @@
       --wrap: 900px;
       --pad: 16px;
       --border: #e5e7eb;
-      --accent: #f0c44c;
-      --text: #ffffff;
-      --bg: #0c2d5a;
-      --bg-page: #0c2d5a;
+      --accent: #f0c44c;           /* Dal gold */
+      --text: #ffffff;             /* white text */
+      --bg: #0c2d5a;               /* Dal navy */
+      --bg-page: #0c2d5a;          /* page background same navy */
       --muted: #dbe7ff;
+
+      /* dedicated link colours (light blue) */
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
     }
@@ -25,17 +27,13 @@
       color:var(--text);
       font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       -webkit-text-size-adjust:100%;
-      height:100%;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch; /* Android smooth scroll */
     }
     .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
 
-    a{word-break:break-word;text-decoration:underline;color:var(--link); cursor:pointer}
+    /* Links: light blue */
+    a{word-break:break-word;text-decoration:underline;color:var(--link)}
     a:visited{color:var(--link-visited)}
     a:hover, a:focus{opacity:.95}
-    /* be explicit for Android hit testing */
-    #out a, #out a * { pointer-events:auto }
 
     /* Force content colors inside #out */
     #out, #out *:not(a) { color: var(--text) !important; }
@@ -46,7 +44,10 @@
     #out table th, #out table td { border-color: var(--border) !important; }
 
     pre,code{white-space:pre-wrap;word-break:break-word}
-    blockquote{ margin:0 0 1em 0;padding-left:12px;border-left:4px solid var(--border);color:#eef2ff }
+    blockquote{
+      margin:0 0 1em 0;padding-left:12px;
+      border-left:4px solid var(--border);color:#eef2ff
+    }
     table{border-collapse:collapse;width:100%;margin:.5em 0}
     th,td{border:1px solid var(--border);padding:8px;vertical-align:top}
     h1,h2,h3{margin-top:1.2em}
@@ -57,10 +58,15 @@
     }
   </style>
 
+  <!-- Markdown parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Sanitizer -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <!-- Auto-link bare URLs/emails AFTER markdown -->
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
+
+  <!-- Thunkable WebViewer bridge -->
   <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 </head>
 
@@ -76,7 +82,7 @@
     const outEl   = document.getElementById('out');
     const dbgEl   = document.getElementById('dbg');
     const showDebug = /[?&]debug=1\b/.test(location.search);
-    let linkHandlerAttached = false;
+    let linkHandlerAttached = false; // PATCH: ensure click handler added only once
 
     function debug(msg){
       if(!showDebug) return;
@@ -106,8 +112,7 @@
             defaultProtocol: 'https',
             nl2br: false,
             validate: { url: (v) => /^https?:\/\//i.test(v) },
-            // NOTE: we don't rely on target=_blank for Android; we intercept below
-            attributes: { rel: 'noopener' }
+            attributes: { rel: 'noopener', target: '_blank' }
           });
         }
       } catch(e){
@@ -117,21 +122,20 @@
       const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target','rel'] });
 
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
+      outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
+      // PATCH: open links externally via Thunkable so this screen stays put
       if (!linkHandlerAttached) {
-        document.addEventListener('click', (e) => {
+        outEl.addEventListener('click', (e) => {
           const a = e.target.closest && e.target.closest('a[href]');
           if (!a) return;
           const url = a.href;
-          debug('link clicked: ' + url);
           if (/^https?:/i.test(url)) {
             e.preventDefault();
             try {
-              ThunkableWebviewerExtension.postMessage(JSON.stringify({ type:'open-url', url }));
+              ThunkableWebviewerExtension.postMessage('OPEN::' + url);
             } catch (err) {
-              debug('postMessage failed: ' + err);
-              // Fallback (browser testing)
-              window.location.href = url;
+              window.open(url, '_blank'); // fallback
             }
           }
         });
@@ -157,10 +161,8 @@
 
     function pingReady(){
       try {
-        // Send BOTH tokens so either block condition works
-        ThunkableWebviewerExtension.postMessage('ready-android');
         ThunkableWebviewerExtension.postMessage('ready');
-        debug('posted "ready-android" and "ready"');
+        debug('posted "ready" via Thunkable extension');
       } catch(e){ debug('postMessage error: ' + e); }
     }
 
