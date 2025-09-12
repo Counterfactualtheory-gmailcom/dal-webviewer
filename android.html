@@ -1,89 +1,103 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DAL Answer (Android)</title>
-<style>
-  /* Ensure full screen height and smooth scrolling */
-  html, body {
-    height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 0;
-    padding: 0;
-  }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DAL Answer (Android)</title>
 
-  /* Match iOS navy blue background */
-  body {
-    background: #0c2d5a; /* DAL navy */
-    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.45;
-    padding: 12px;
-  }
+  <style>
+    :root{
+      --wrap: 900px;
+      --pad: 16px;
+      --border: #e5e7eb;
+      --accent: #f0c44c;           /* Dal gold */
+      --text: #ffffff;             /* white text */
+      --bg: #0c2d5a;               /* Dal navy */
+      --bg-page: #0c2d5a;          /* page background same navy */
+      --muted: #dbe7ff;
+      --link: #9cc9ff;
+      --link-visited: #c8e0ff;
+    }
 
-  /* White output container */
-  .container {
-    background: #fff;
-    border: 3px solid #F0C40F; /* DAL gold */
-    border-radius: 12px;
-    padding: 12px;
-  }
+    html,body{
+      margin:0; padding:0;
+      background:var(--bg-page);
+      color:var(--text);
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      height:100%;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+    }
 
-  #out {
-    font-size: 16px;
-    color: #000;
-  }
+    .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
 
-  /* Clickable, styled links */
-  a {
-    word-break: break-word;
-    color: #0645AD;
-    text-decoration: underline;
-    cursor: pointer; /* Required for Android touch detection */
-  }
-</style>
-<script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+    a{word-break:break-word;text-decoration:underline;color:var(--link); cursor:pointer}
+    a:visited{color:var(--link-visited)}
+    a:hover, a:focus{opacity:.95}
+
+    /* Force colors inside content area */
+    #out, #out *:not(a) { color: var(--text) !important; }
+    #out a { color: var(--link) !important; }
+    #out a:visited { color: var(--link-visited) !important; }
+    #out, #out * { background: transparent !important; }
+
+    pre,code{white-space:pre-wrap;word-break:break-word}
+    blockquote{margin:0 0 1em 0;padding-left:12px;border-left:4px solid var(--border);color:#eef2ff}
+    table{border-collapse:collapse;width:100%;margin:.5em 0}
+    th,td{border:1px solid var(--border);padding:8px;vertical-align:top}
+    h1,h2,h3{margin-top:1.2em}
+  </style>
+
+  <!-- Markdown parser and sanitizers -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
+
+  <!-- Thunkable bridge -->
+  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 </head>
+
 <body>
-  <div class="container"><div id="out">READY</div></div>
+  <div class="wrap">
+    <div id="out">Loading...</div>
+  </div>
 
-<script>
-  const out = document.getElementById('out');
+  <script>
+    marked.setOptions({ gfm:true, breaks:true, mangle:false, headerIds:false });
+    const outEl = document.getElementById('out');
 
-  // Escape HTML special characters
-  function esc(s){
-    return String(s||'').replace(/[&<>"']/g, c => (
-      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
-    ));
-  }
+    // Render content like iOS version
+    function safeRender(md){
+      const html = marked.parse(md || '');
+      const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
 
-  // Convert URLs to clickable links and preserve line breaks
-  function linkify(s){
-    return esc(s)
-      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-      .replace(/\n/g,'<br>');
-  }
+      const linked = linkifyHtml(clean1, {
+        defaultProtocol: 'https',
+        validate: { url: (v) => /^https?:\/\//i.test(v) },
+        attributes: { rel: 'noopener', target: '_blank' }
+      });
 
-  // Tell Thunkable this page is ready
-  try { 
-    ThunkableWebviewerExtension.postMessage('ready-android'); 
-  } catch(e){}
+      outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
+    }
 
-  // Receive and render content
-  ThunkableWebviewerExtension.receiveMessage(function(message){
-    out.innerHTML = linkify(message);
-  });
+    // Signal ready for Thunkable
+    try { ThunkableWebviewerExtension.postMessage('ready-android'); } catch(e){}
 
-  // Intercept clicks on links and send JSON to Thunkable
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('a');
-    if(!a) return;
-    e.preventDefault();
-    try {
-      ThunkableWebviewerExtension.postMessage(JSON.stringify({type:'open-url', url:a.href}));
-    } catch(_){}
-  });
-</script>
+    // Receive data from Thunkable
+    ThunkableWebviewerExtension.receiveMessage(function(message){
+      safeRender(message);
+    });
+
+    // Send JSON to Thunkable when links clicked
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      e.preventDefault();
+      try {
+        ThunkableWebviewerExtension.postMessage(JSON.stringify({ type:'open-url', url: a.href }));
+      } catch (_){}
+    });
+  </script>
 </body>
 </html>
