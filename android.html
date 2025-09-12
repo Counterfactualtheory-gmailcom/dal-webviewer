@@ -27,12 +27,17 @@
       font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       height: 100%;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on Android */
     }
 
     .wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad); }
 
-    a { word-break: break-word; text-decoration: underline; color: var(--link); cursor: pointer; }
+    a { 
+      word-break: break-word; 
+      text-decoration: underline; 
+      color: var(--link); 
+      cursor: pointer; /* Required for Android touch detection */
+    }
     a:visited { color: var(--link-visited); }
     a:hover, a:focus { opacity: .95; }
 
@@ -76,33 +81,42 @@
       const linked = linkifyHtml(clean1, {
         defaultProtocol: 'https',
         validate: { url: (v) => /^https?:\/\//i.test(v) },
-        attributes: { rel: 'noopener', target: '_blank' }
+        attributes: { rel: 'noopener' }
       });
 
       outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
     }
 
-    // Signal Thunkable that the page is ready
+    // Signal ready to Thunkable (silent, no UI debug)
     try {
       ThunkableWebviewerExtension.postMessage('ready-android');
+      console.log("Ready signal sent to Thunkable.");
     } catch (e) {
-      console.log("Failed to send ready-android", e);
+      console.error("Failed to send ready signal", e);
     }
 
-    // Receive data from Thunkable and render
+    // Receive data from Thunkable
     ThunkableWebviewerExtension.receiveMessage(function(message) {
+      console.log("Message received from Thunkable:", message);
       safeRender(message);
     });
 
-    // Intercept link clicks and send JSON back to Thunkable
+    // Handle link clicks
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
-      e.preventDefault();
+
+      e.preventDefault(); // Prevent browser default behavior
+      const url = a.href;
+
+      // Send link click to Thunkable to open internally
       try {
-        ThunkableWebviewerExtension.postMessage(JSON.stringify({ type: 'open-url', url: a.href }));
-      } catch (_) {
-        console.log("Failed to send link click to Thunkable");
+        ThunkableWebviewerExtension.postMessage(JSON.stringify({ type: 'open-url', url: url }));
+        console.log("Sent link to Thunkable:", url);
+      } catch (err) {
+        console.error("Failed to send link to Thunkable", err);
+        // Fallback: open in same WebView
+        window.location.href = url;
       }
     });
   </script>
