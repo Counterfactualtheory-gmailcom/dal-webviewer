@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>DAL Answer (Android)</title>
+  <title>DAL Answer (Android DEBUG)</title>
 
   <style>
     :root{
@@ -60,7 +60,7 @@
 
 <body>
   <div class="wrap">
-    <div id="out">Loading...</div>
+    <div id="out">Loading debug mode...</div>
   </div>
 
   <script>
@@ -69,6 +69,7 @@
 
     // Render content like iOS version
     function safeRender(md){
+      alert("safeRender() called with message length: " + (md ? md.length : "null"));
       const html = marked.parse(md || '');
       const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
 
@@ -82,10 +83,16 @@
     }
 
     // Signal ready for Thunkable
-    try { ThunkableWebviewerExtension.postMessage('ready-android'); } catch(e){}
+    try { 
+      alert("Sending 'ready-android' to Thunkable...");
+      ThunkableWebviewerExtension.postMessage('ready-android'); 
+    } catch(e){
+      alert("Error sending ready-android: " + e);
+    }
 
     // Receive data from Thunkable
     ThunkableWebviewerExtension.receiveMessage(function(message){
+      alert("Received message from Thunkable: " + message);
       safeRender(message);
     });
 
@@ -95,8 +102,11 @@
       if (!a) return;
       e.preventDefault();
       try {
+        alert("Link clicked: " + a.href);
         ThunkableWebviewerExtension.postMessage(JSON.stringify({ type:'open-url', url: a.href }));
-      } catch (_){}
+      } catch (_){
+        alert("Error posting open-url message");
+      }
     });
   </script>
 </body>
