@@ -1,67 +1,64 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DAL Answer (Android)</title>
-<style>
-  :root{--wrap:900px;--pad:16px;--border:#e5e7eb;--accent:#f0c44c;--text:#ffffff;--bg:#0c2d5a;--bg-page:#0c2d5a;--muted:#dbe7ff;--link:#9cc9ff;--link-visited:#c8e0ff;}
-  html,body{height:100%;overflow-y:scroll !important;-webkit-overflow-scrolling:touch;}
-  .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad);}
-  a{word-break:break-word;text-decoration:underline;color:var(--link);cursor:pointer;}
-  a:visited{color:var(--link-visited);}
-  a:hover,a:focus{opacity:.95;}
-  #out,#out *:not(a){color:var(--text) !important;}
-  #out a{color:var(--link) !important;}
-  #out a:visited{color:var(--link-visited) !important;}
-  #out,#out *{background:transparent !important;}
-  pre,code{white-space:pre-wrap;word-break:break-word;}
-  blockquote{margin:0 0 1em 0;padding-left:12px;border-left:4px solid var(--border);color:#eef2ff;}
-  table{border-collapse:collapse;width:100%;margin:.5em 0;}
-  th,td{border:1px solid var(--border);padding:8px;vertical-align:top;}
-  h1,h2,h3{margin-top:1.2em;}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
-<script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
-</head>
-<body>
-<div class="wrap"><div id="out">Loading...</div></div>
-<script>
-  marked.setOptions({gfm:true,breaks:true,mangle:false,headerIds:false});
-  const outEl=document.getElementById('out');
-  function safeRender(md){
-    const html=marked.parse(md||'');
-    const clean1=DOMPurify.sanitize(html,{ADD_ATTR:['target','rel']});
-    const linked=linkifyHtml(clean1,{defaultProtocol:'https',validate:{url:(v)=>/^https?:\/\//i.test(v)},attributes:{rel:'noopener',target:'_blank'}});
-    outEl.innerHTML=linked||'<span class="muted">[empty]</span>';
-  }
-  try{
-    ThunkableWebviewerExtension.postMessage('ready-android');
-    console.log("DEBUG: Sent ready-android to Thunkable");
-    outEl.innerText="DEBUG: Sent ready-android to Thunkable";
-  }catch(e){
-    console.log("DEBUG: Failed to send ready-android",e);
-    outEl.innerText="DEBUG: Failed to send ready-android";
-  }
-  ThunkableWebviewerExtension.receiveMessage(function(message){
-    console.log("DEBUG: Received message from Thunkable:",message);
-    outEl.innerText="DEBUG: Message received: "+message;
-    safeRender(message);
-  });
-  document.addEventListener('click',(e)=>{
-    const a=e.target.closest('a[href]');
-    if(!a)return;
-    e.preventDefault();
-    try{
-      ThunkableWebviewerExtension.postMessage(JSON.stringify({type:'open-url',url:a.href}));
-      console.log("DEBUG: Link clicked and sent to Thunkable:",a.href);
-    }catch(_){
-      console.log("DEBUG: Failed to send link click to Thunkable");
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DAL Answer (Android)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0c2d5a; /* Dal navy */
+      color: #ffffff;
+      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
-  });
-</script>
+    #out {
+      padding: 16px;
+      white-space: pre-wrap;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
+  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+</head>
+
+<body>
+  <div id="out">Loading...</div>
+
+  <script>
+    const outEl = document.getElementById('out');
+
+    // Debugging function to show raw message
+    function debugLog(msg) {
+      console.log("RAW MESSAGE:", msg);
+      outEl.innerHTML = `<div style="color:yellow; font-size:14px;">DEBUG RAW:<br>${msg}</div>`;
+    }
+
+    // Render safe markdown
+    function safeRender(md) {
+      try {
+        const html = marked.parse(md || '');
+        const clean = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+        outEl.innerHTML = clean;
+      } catch (err) {
+        console.error("Markdown render error:", err);
+        outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
+      }
+    }
+
+    // Ready signal
+    try {
+      ThunkableWebviewerExtension.postMessage('ready-android');
+    } catch (e) {
+      console.error("Failed to send ready-android:", e);
+    }
+
+    // Receive message
+    ThunkableWebviewerExtension.receiveMessage(function(message) {
+      debugLog(message); // See raw content first
+      safeRender(message);
+    });
+  </script>
 </body>
 </html>
