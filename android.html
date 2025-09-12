@@ -65,11 +65,10 @@
   </div>
 
   <script>
-    // Configure Markdown rendering
     marked.setOptions({ gfm: true, breaks: true, mangle: false, headerIds: false });
     const outEl = document.getElementById('out');
 
-    // Render Markdown into safe HTML
+    // Render Markdown
     function safeRender(md) {
       const html = marked.parse(md || '');
       const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
@@ -83,24 +82,25 @@
       outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
     }
 
-    // --- Handshake: notify Thunkable page is ready ---
+    // --- DEBUG: Confirm android.html is loading and ready-android is sent ---
+    alert("android.html loaded - about to send ready-android");
     try {
-      ThunkableWebviewerExtension.postMessage('ready-android'); // Android token
-      ThunkableWebviewerExtension.postMessage('ready');         // iOS fallback token
-      console.log("DEBUG: Sent ready signals to Thunkable");
-      outEl.innerText = "DEBUG: Sent ready signals to Thunkable";
+      ThunkableWebviewerExtension.postMessage('ready-android');
+      console.log("DEBUG: Sent ready-android to Thunkable");
+      outEl.innerText = "DEBUG: Sent ready-android to Thunkable";
     } catch (e) {
-      console.log("DEBUG: Failed to send ready signals", e);
-      outEl.innerText = "DEBUG: Failed to send ready signals";
+      console.log("DEBUG: Failed to send ready-android", e);
+      outEl.innerText = "DEBUG: Failed to send ready-android";
     }
+    // ------------------------------------------------------------------------
 
-    // --- Receive data from Thunkable ---
+    // Receive data from Thunkable
     ThunkableWebviewerExtension.receiveMessage(function(message) {
       console.log("DEBUG: Received message from Thunkable:", message);
-      safeRender(message);  // Render final markdown
+      safeRender(message);
     });
 
-    // --- Intercept link clicks and notify Thunkable ---
+    // Send JSON back to Thunkable when links clicked
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
