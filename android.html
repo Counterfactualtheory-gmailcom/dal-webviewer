@@ -70,6 +70,11 @@
 
     // Render Markdown like iOS
     function safeRender(md) {
+      if (!md || md.trim() === "") {
+        outEl.innerHTML = '<span class="muted">[empty response]</span>';
+        return;
+      }
+
       const html = marked.parse(md || '');
       const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
 
@@ -85,14 +90,13 @@
     // Signal to Thunkable that this page is ready
     try {
       ThunkableWebviewerExtension.postMessage('ready-android');
-      console.log("Ready signal sent to Thunkable.");
+      ThunkableWebviewerExtension.postMessage('ready'); // second signal for compatibility
     } catch (e) {
       console.error("Failed to send ready-android", e);
     }
 
     // Receive data from Thunkable
     ThunkableWebviewerExtension.receiveMessage(function(message) {
-      console.log("Message received from Thunkable:", message);
       safeRender(message);
     });
 
@@ -103,7 +107,6 @@
       e.preventDefault();
       try {
         ThunkableWebviewerExtension.postMessage(JSON.stringify({ type: 'open-url', url: a.href }));
-        console.log("Link click sent to Thunkable:", a.href);
       } catch (err) {
         console.error("Failed to send link click to Thunkable", err);
       }
