@@ -5,40 +5,42 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DAL Answer (Android)</title>
 <style>
-  /* Ensure page can scroll smoothly on Android */
+  /* Ensure full screen height and smooth scrolling */
   html, body {
     height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
   }
 
-  /* Restored blue background */
+  /* Match iOS navy blue background */
   body {
-    margin: 0;
-    padding: 12px;
-    background: #007BFF; /* Replace this if your original hex was different */
+    background: #0c2d5a; /* DAL navy */
     font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.45;
+    padding: 12px;
   }
 
   /* White output container */
   .container {
     background: #fff;
-    border: 3px solid #F0C40F;
+    border: 3px solid #F0C40F; /* DAL gold */
     border-radius: 12px;
     padding: 12px;
   }
 
   #out {
     font-size: 16px;
+    color: #000;
   }
 
   /* Clickable, styled links */
   a {
-    word-break: break-all;
+    word-break: break-word;
     color: #0645AD;
     text-decoration: underline;
-    cursor: pointer; /* Required for proper touch detection on Android */
+    cursor: pointer; /* Required for Android touch detection */
   }
 </style>
 <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
@@ -63,15 +65,17 @@
       .replace(/\n/g,'<br>');
   }
 
-  // Signal readiness to Thunkable
-  try { ThunkableWebviewerExtension.postMessage('ready-android'); } catch(e){}
+  // Tell Thunkable this page is ready
+  try { 
+    ThunkableWebviewerExtension.postMessage('ready-android'); 
+  } catch(e){}
 
   // Receive and render content
   ThunkableWebviewerExtension.receiveMessage(function(message){
     out.innerHTML = linkify(message);
   });
 
-  // Intercept clicks on links and open them via the native app
+  // Intercept clicks on links and send JSON to Thunkable
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a');
     if(!a) return;
