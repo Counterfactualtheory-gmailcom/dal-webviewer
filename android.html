@@ -10,28 +10,23 @@
       --wrap: 900px;
       --pad: 16px;
       --border: #e5e7eb;
-      --accent: #f0c44c;           /* Dal gold */
-      --text: #ffffff;             /* white text */
-      --bg: #0c2d5a;               /* Dal navy */
-      --bg-page: #0c2d5a;          /* page background same navy */
-      --muted: #dbe7ff;
+      --accent: #f0c44c;   /* Dal gold */
+      --text: #ffffff;     /* White text */
+      --bg: #0c2d5a;       /* Dal navy */
+      --bg-page: #0c2d5a;  /* Page background navy */
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
     }
 
-    /* Ensure scrolling works on physical Android devices */
     html, body {
       height: 100%;
       margin: 0;
       padding: 0;
-      overflow-y: scroll;               /* Always enable vertical scroll */
-      -webkit-overflow-scrolling: touch; /* Smooth touch scrolling */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* Smooth Android scrolling */
       background: var(--bg-page);
       color: var(--text);
       font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      height: 100%;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
     }
 
     .wrap {
@@ -39,54 +34,40 @@
       margin: 0 auto;
       padding: var(--pad);
     }
-    .wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad); }
+
+    /* Force colors inside content */
+    #out, #out *:not(a) { color: var(--text) !important; }
+    #out a { color: var(--link) !important; }
+    #out a:visited { color: var(--link-visited) !important; }
+    #out, #out * { background: transparent !important; }
 
     /* Links */
     a {
       word-break: break-word;
       text-decoration: underline;
-      color: var(--link);
       cursor: pointer;
     }
-    a { word-break: break-word; text-decoration: underline; color: var(--link); cursor: pointer; }
-    a:visited { color: var(--link-visited); }
-    a:hover, a:focus { opacity: .95; }
-
-    /* Force colors inside content */
-    /* Force colors inside content area */
-    #out, #out *:not(a) { color: var(--text) !important; }
-    #out a { color: var(--link) !important; }
-    #out a:visited { color: var(--link-visited) !important; }
-    #out, #out * { background: transparent !important; }
 
     pre, code { white-space: pre-wrap; word-break: break-word; }
     blockquote {
       margin: 0 0 1em 0;
       padding-left: 12px;
       border-left: 4px solid var(--border);
-      color: #eef2ff;
     }
-    blockquote { margin: 0 0 1em 0; padding-left: 12px; border-left: 4px solid var(--border); color: #eef2ff; }
-    table { border-collapse: collapse; width: 100%; margin: .5em 0; }
-    th, td { border: 1px solid var(--border); padding: 8px; vertical-align: top; }
-    h1, h2, h3 { margin-top: 1.2em; }
   </style>
 
-  <!-- Markdown parser and sanitizers -->
+  <!-- Markdown + Sanitizers -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
 
-  <!-- Thunkable bridge -->
+  <!-- Thunkable WebViewer Bridge -->
   <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 </head>
 
 <body>
   <div class="wrap">
-    <div id="scroll-wrapper" style="height:100%; overflow-y:auto;">
-      <div id="out">Loading...</div>
-    </div>
     <div id="out">Loading...</div>
   </div>
 
@@ -94,40 +75,29 @@
     marked.setOptions({ gfm: true, breaks: true, mangle: false, headerIds: false });
     const outEl = document.getElementById('out');
 
-    // Render content like iOS version
-    // Render Markdown like iOS
+    // Render markdown safely
     function safeRender(md) {
       const html = marked.parse(md || '');
-      const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
-
-      const linked = linkifyHtml(clean1, {
+      const clean = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
+      const linked = linkifyHtml(clean, {
         defaultProtocol: 'https',
         validate: { url: (v) => /^https?:\/\//i.test(v) },
         attributes: { rel: 'noopener', target: '_blank' }
       });
-
       outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
     }
 
-    // Notify Thunkable that page is ready
+    // Notify Thunkable the page is ready
     try { 
       ThunkableWebviewerExtension.postMessage('ready-android'); 
-    } catch (e) {}
-    // Signal Thunkable that the page is ready
-    try {
-      ThunkableWebviewerExtension.postMessage('ready-android');
-    } catch (e) {
-      console.log("Failed to send ready-android", e);
-    }
+    } catch(e) {}
 
-    // Receive and render data from Thunkable
-    // Receive data from Thunkable and render
+    // Receive data and render
     ThunkableWebviewerExtension.receiveMessage(function(message) {
       safeRender(message);
     });
 
-    // Intercept link clicks and send to Thunkable instead of leaving the WebView
-    // Intercept link clicks and send JSON back to Thunkable
+    // Capture clicks on links and send back to Thunkable
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
@@ -137,10 +107,8 @@
           type: 'open-url',
           url: a.href
         }));
-        ThunkableWebviewerExtension.postMessage(JSON.stringify({ type: 'open-url', url: a.href }));
-      } catch (_) {
-        console.error('Failed to send link to Thunkable');
-        console.log("Failed to send link click to Thunkable");
+      } catch(err) {
+        console.error("Failed to send link to Thunkable", err);
       }
     });
   </script>
