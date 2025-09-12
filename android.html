@@ -82,32 +82,30 @@
       outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
     }
 
-    // Signal readiness to Thunkable (silent, no UI debug)
+    // Signal to Thunkable
     try {
       ThunkableWebviewerExtension.postMessage('ready-android');
-      console.log("Ready signal sent to Thunkable");
+      console.log("DEBUG: Sent ready-android to Thunkable");
     } catch (e) {
-      console.error("Failed to send ready signal", e);
+      console.log("DEBUG: Failed to send ready-android", e);
     }
 
-    // Receive data from Thunkable and render it
+    // Receive data from Thunkable
     ThunkableWebviewerExtension.receiveMessage(function(message) {
-      console.log("Message received from Thunkable:", message);
-      safeRender(message);  // Render directly, no overwriting with debug
+      console.log("DEBUG: Received message from Thunkable:", message);
+      safeRender(message);
     });
 
-    // Handle link clicks
+    // Send JSON back to Thunkable when links clicked
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
-
-      e.preventDefault(); // Prevent default navigation
+      e.preventDefault();
       try {
         ThunkableWebviewerExtension.postMessage(JSON.stringify({ type: 'open-url', url: a.href }));
-        console.log("Link clicked and sent to Thunkable:", a.href);
-      } catch (err) {
-        console.error("Failed to send link click to Thunkable");
-        window.location.href = a.href; // Fallback
+        console.log("DEBUG: Link clicked and sent to Thunkable:", a.href);
+      } catch (_) {
+        console.log("DEBUG: Failed to send link click to Thunkable");
       }
     });
   </script>
