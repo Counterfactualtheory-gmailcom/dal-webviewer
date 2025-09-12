@@ -13,7 +13,7 @@
       --accent: #f0c44c;           /* Dal gold */
       --text: #ffffff;             /* white text */
       --bg: #0c2d5a;               /* Dal navy */
-      --bg-page: #0c2d5a;
+      --bg-page: #0c2d5a;          /* page background */
       --muted: #dbe7ff;
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
@@ -32,31 +32,24 @@
 
     .wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad); }
 
-    #log {
-      position: absolute;
-      top: 4px;
-      right: 6px;
-      font-size: 11px;
-      color: yellow;
-    }
-
-    a { 
-      word-break: break-word; 
-      text-decoration: underline; 
-      color: var(--link); 
-      cursor: pointer; 
-    }
+    a { word-break: break-word; text-decoration: underline; color: var(--link); cursor: pointer; }
     a:visited { color: var(--link-visited); }
     a:hover, a:focus { opacity: .95; }
 
+    /* Force colors inside content area */
     #out, #out *:not(a) { color: var(--text) !important; }
+    #out a { color: var(--link) !important; }
+    #out a:visited { color: var(--link-visited) !important; }
     #out, #out * { background: transparent !important; }
 
     pre, code { white-space: pre-wrap; word-break: break-word; }
     blockquote { margin: 0 0 1em 0; padding-left: 12px; border-left: 4px solid var(--border); color: #eef2ff; }
+    table { border-collapse: collapse; width: 100%; margin: .5em 0; }
+    th, td { border: 1px solid var(--border); padding: 8px; vertical-align: top; }
+    h1, h2, h3 { margin-top: 1.2em; }
   </style>
 
-  <!-- Markdown tools -->
+  <!-- Markdown parser and sanitizers -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
@@ -69,70 +62,84 @@
 <body>
   <div class="wrap">
     <div id="out">Loading...</div>
-    <div id="log"></div>
   </div>
 
   <script>
     marked.setOptions({ gfm: true, breaks: true, mangle: false, headerIds: false });
-
     const outEl = document.getElementById('out');
-    const logEl = document.getElementById('log');
 
-    // Helper to show small debug info on screen
+    // Utility log function
     function log(msg) {
-      console.log('[DEBUG]', msg);
-      logEl.textContent = msg;
+      console.log('[ANDROID]', msg);
     }
 
     // Render markdown safely
     function renderMarkdown(md) {
       const html = marked.parse(md || '');
       const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+
       const linked = linkifyHtml(clean1, {
         defaultProtocol: 'https',
         validate: { url: (v) => /^https?:\/\//i.test(v) },
         attributes: { rel: 'noopener', target: '_blank' }
       });
+
       outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
     }
 
-    // Signal Thunkable we are ready
+    // Tell Thunkable we're ready
     try {
-      log('sending ready-android');
       ThunkableWebviewerExtension.postMessage('ready-android');
+      log('Sent ready-android to Thunkable');
     } catch (e) {
-      log('error sending ready-android');
+      log('Failed to send ready-android: ' + e);
     }
 
-    // ---- receive and render payload
+    // ---- Receive and render payload ----
     ThunkableWebviewerExtension.receiveMessage(function(message){
       if (message === 'ready-android') {
-        log('got echo: ready-android');
+        log('Echo received: ready-android');
         return;
       }
 
-      // Show first 100 chars of raw message
-      log(`raw: ${String(message).substring(0,100)}`);
+      log('Raw message received: ' + message);
 
+      let contentToRender = message;
+
+      // Try to parse JSON first
       try {
-        renderMarkdown(message);
-        log('render success');
+        const parsed = JSON.parse(message);
+        if (parsed && parsed.data) {
+          contentToRender = parsed.data;
+          log('JSON detected, using parsed.data field');
+        } else {
+          log('JSON detected but no data field, showing raw object');
+          contentToRender = JSON.stringify(parsed, null, 2);
+        }
+      } catch (e) {
+        log('Message is plain markdown, skipping JSON parse');
+      }
+
+      // Now try rendering as markdown
+      try {
+        renderMarkdown(contentToRender);
+        log('Render success');
       } catch (e) {
         outEl.textContent = 'Render error.';
-        log('render error - bad markdown');
-        console.error('Render error details:', e, message);
+        log('Render error - bad markdown: ' + e);
       }
     });
 
-    // Handle link clicks
+    // Intercept links and send them back to Thunkable
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
       e.preventDefault();
       try {
         ThunkableWebviewerExtension.postMessage(JSON.stringify({ type: 'open-url', url: a.href }));
-      } catch (_) {
-        log('error posting open-url');
+        log('Link clicked and sent to Thunkable: ' + a.href);
+      } catch (err) {
+        log('Failed to send link to Thunkable: ' + err);
       }
     });
   </script>
