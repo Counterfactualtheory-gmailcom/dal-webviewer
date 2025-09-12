@@ -27,6 +27,9 @@
       color:var(--text);
       font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       -webkit-text-size-adjust:100%;
+      height:100%;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch; /* smooth scrolling for Android */
     }
     .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
 
@@ -124,7 +127,7 @@
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
-      // PATCH: open links externally via Thunkable so this screen stays put
+      // PATCH: Send JSON to Thunkable when a link is clicked
       if (!linkHandlerAttached) {
         outEl.addEventListener('click', (e) => {
           const a = e.target.closest && e.target.closest('a[href]');
@@ -133,9 +136,13 @@
           if (/^https?:/i.test(url)) {
             e.preventDefault();
             try {
-              ThunkableWebviewerExtension.postMessage('OPEN::' + url);
+              // Send structured JSON message
+              ThunkableWebviewerExtension.postMessage(JSON.stringify({
+                type: 'open-url',
+                url: url
+              }));
             } catch (err) {
-              window.open(url, '_blank'); // fallback
+              window.open(url, '_blank'); // fallback for testing in browser
             }
           }
         });
