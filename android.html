@@ -1,69 +1,52 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DAL Answer (Android)</title>
 
   <style>
-    :root {
+    :root{
       --wrap: 900px;
       --pad: 16px;
       --border: #e5e7eb;
-      --accent: #f0c44c;           /* Dal gold */
-      --text: #ffffff;             /* white text */
-      --bg: #0c2d5a;               /* Dal navy */
-      --bg-page: #0c2d5a;          /* page background same navy */
-      --muted: #dbe7ff;
+      --accent: #f0c44c;
+      --text: #ffffff;
+      --bg: #0c2d5a;          /* DAL navy */
+      --bg-page: #0c2d5a;
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
+      --muted:#a2b8df;
     }
 
     html, body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
+      height: 100%;
       background: var(--bg-page);
       color: var(--text);
-      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      height: 100%;
+      font: 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
 
-    .wrap {
-      max-width: var(--wrap);
-      margin: 0 auto;
-      padding: var(--pad);
-    }
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad); }
+    #out, #out *:not(a) { color: var(--text) !important; background: transparent !important; }
+    a{ color: var(--link) !important; text-decoration: underline; cursor: pointer; }
+    a:visited{ color: var(--link-visited) !important; }
+    pre,code{white-space:pre-wrap;word-break:break-word}
 
-    a {
-      word-break: break-word;
-      text-decoration: underline;
-      color: var(--link);
-      cursor: pointer;
+    /* tiny inline log (top-right) */
+    #log {
+      position: sticky; top: 0; float: right;
+      font-size: 12px; line-height: 1.2;
+      color: var(--muted); opacity: .8;
+      padding: 2px 6px; border-left: 3px solid var(--accent);
+      background: rgba(0,0,0,.15);
+      border-radius: 6px; max-width: 100%;
     }
-    a:visited { color: var(--link-visited); }
-    a:hover, a:focus { opacity: .95; }
-
-    /* Force colors inside content area */
-    #out, #out *:not(a) { color: var(--text) !important; }
-    #out a { color: var(--link) !important; }
-    #out a:visited { color: var(--link-visited) !important; }
-    #out, #out * { background: transparent !important; }
-
-    pre, code { white-space: pre-wrap; word-break: break-word; }
-    blockquote {
-      margin: 0 0 1em 0;
-      padding-left: 12px;
-      border-left: 4px solid var(--border);
-      color: #eef2ff;
-    }
-    table { border-collapse: collapse; width: 100%; margin: .5em 0; }
-    th, td { border: 1px solid var(--border); padding: 8px; vertical-align: top; }
-    h1, h2, h3 { margin-top: 1.2em; }
   </style>
 
-  <!-- Markdown parser and sanitizers -->
+  <!-- Markdown + sanitize + linkify -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
@@ -72,61 +55,78 @@
   <!-- Thunkable bridge -->
   <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 </head>
-
 <body>
   <div class="wrap">
+    <div id="log">status: booting…</div>
     <div id="out">Loading...</div>
   </div>
 
   <script>
-    // Configure markdown rendering
-    marked.setOptions({ gfm: true, breaks: true, mangle: false, headerIds: false });
-    const outEl = document.getElementById('out');
+    // ---- helpers
+    const $ = (id) => document.getElementById(id);
+    const log = (t) => { const el = $('log'); el.textContent = t; };
 
-    // Function to render Markdown safely
-    function safeRender(md) {
+    marked.setOptions({ gfm:true, breaks:true, mangle:false, headerIds:false });
+
+    function renderMarkdown(md){
       const html = marked.parse(md || '');
-      const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
-
-      const linked = linkifyHtml(clean1, {
+      const clean = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
+      const linked = linkifyHtml(clean, {
         defaultProtocol: 'https',
         validate: { url: (v) => /^https?:\/\//i.test(v) },
         attributes: { rel: 'noopener', target: '_blank' }
       });
-
-      outEl.innerHTML = linked || '<span class="muted">[empty]</span>';
+      $('out').innerHTML = linked || '<span style="opacity:.7">[empty]</span>';
     }
 
-    // Notify Thunkable when page is ready
-    try {
-      ThunkableWebviewerExtension.postMessage('ready-android');
-      console.log("DEBUG: Sent ready-android to Thunkable");
-    } catch (e) {
-      console.log("DEBUG: Failed to send ready-android", e);
+    // ---- handshake: send ready; retry once after a tick
+    function sendReady(){
+      try { ThunkableWebviewerExtension.postMessage('ready-android'); log('sent: ready-android'); }
+      catch(e){ log('error sending ready'); }
     }
 
-    // Receive data from Thunkable and render it
-    ThunkableWebviewerExtension.receiveMessage(function(message) {
-      console.log("DEBUG: Received message from Thunkable:", message);
-      // FIX: Do NOT overwrite with debug text — only render final content
-      safeRender(message);
+    // Fire once DOM is ready (more reliable on Android)
+    document.addEventListener('DOMContentLoaded', () => {
+      log('dom ready; sending ready…');
+      sendReady();
+      setTimeout(() => { log('retry ready…'); sendReady(); }, 300);
     });
 
-    // Handle link clicks and send them back to Thunkable
+    // ---- receive and render payload
+    ThunkableWebviewerExtension.receiveMessage(function(message){
+      // If Thunkable echoes our 'ready-android', just ignore for rendering.
+      if (message === 'ready-android') {
+        log('got echo: ready-android');
+        return;
+      }
+      log(`got payload (len: ${String(message||'').length})`);
+      try {
+        renderMarkdown(message);
+        // acknowledge back so you can see it in your DEBUG label if desired
+        try { ThunkableWebviewerExtension.postMessage('received-android'); } catch(_){}
+      } catch (e) {
+        $('out').textContent = 'Render error.';
+        log('render error');
+      }
+    });
+
+    // ---- link intercept: hand off to Thunkable to open in-app view
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
       e.preventDefault();
+      const url = a.href;
       try {
-        ThunkableWebviewerExtension.postMessage(JSON.stringify({
-          type: 'open-url',
-          url: a.href
-        }));
-        console.log("DEBUG: Link clicked and sent to Thunkable:", a.href);
-      } catch (_) {
-        console.log("DEBUG: Failed to send link click to Thunkable");
+        ThunkableWebviewerExtension.postMessage(JSON.stringify({ type:'open-url', url }));
+        log('sent open-url');
+      } catch (e) {
+        // last-resort fallback: navigate inside webview
+        location.href = url;
       }
     });
+
+    // crash guard
+    window.addEventListener('error', () => log('runtime error'));
   </script>
 </body>
 </html>
