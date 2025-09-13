@@ -18,20 +18,17 @@
     }
 
     /* ===== NEW TWEAKS ===== */
-    /* 1. Reduce vertical spacing for cleaner layout */
-    #out p, #out li {
-      margin: 0.25em 0; /* tighter spacing for text and bullet points */
+    /* 1. Reduce vertical spacing */
+    #out p {
+      margin: 0.3em 0;
     }
     #out h1, #out h2, #out h3 {
-      margin-top: 0.5em;
-      margin-bottom: 0.3em;
+      margin-top: 0.6em;
+      margin-bottom: 0.4em;
     }
     #out ul, #out ol {
-      margin: 0.3em 0;
+      margin: 0.4em 0;
       padding-left: 1.2em;
-    }
-    #out br {
-      display: none; /* prevent extra blank lines */
     }
 
     /* 2. Improve link visibility */
@@ -63,10 +60,16 @@
       outEl.innerHTML = `<div style="color:yellow; font-size:14px;">DEBUG RAW:<br>${msg}</div>`;
     }
 
+    // Clean markdown to remove extra blank lines
+    function cleanMarkdown(md) {
+      return md.replace(/\n{3,}/g, '\n\n'); // Replace 3+ line breaks with just 2
+    }
+
     // Render safe markdown
     function safeRender(md) {
       try {
-        const html = marked.parse(md || '');
+        const cleaned = cleanMarkdown(md); // normalize spacing first
+        const html = marked.parse(cleaned || '');
         const clean = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
         outEl.innerHTML = clean;
       } catch (err) {
@@ -88,7 +91,7 @@
       safeRender(message);
     });
 
-    // 3. Force links to open in a new window (prevents app navigation issues)
+    // Force links to open in a new window
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
