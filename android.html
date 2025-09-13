@@ -14,32 +14,36 @@
     }
     #out {
       padding: 16px;
+      /* CHANGED: stop preserving raw newlines globally */
+      white-space: normal;
+      /* Optional, mild tightening for perceived spacing inside content only */
+      line-height: 1.35;
+    }
+
+    /* ===== SPACING TWEAKS ONLY ===== */
+    /* Paragraphs & headings */
+    #out p { margin: 0.3em 0; }
+    #out h1, #out h2, #out h3 { margin-top: 0.6em; margin-bottom: 0.4em; }
+
+    /* Lists */
+    #out ul, #out ol { margin: 0.35em 0; padding-left: 1.2em; }
+    #out li { margin: 0.15em 0; }
+
+    /* Blockquotes */
+    #out blockquote { margin: 0.5em 0; }
+    #out blockquote p { margin: 0.3em 0; }
+
+    /* Preserve formatting only where needed */
+    #out pre, #out code {
       white-space: pre-wrap;
+      line-height: 1.4;
+      overflow-x: auto;
     }
 
-    /* ===== NEW TWEAKS ===== */
-    /* 1. Reduce vertical spacing */
-    #out p {
-      margin: 0.3em 0;
-    }
-    #out h1, #out h2, #out h3 {
-      margin-top: 0.6em;
-      margin-bottom: 0.4em;
-    }
-    #out ul, #out ol {
-      margin: 0.4em 0;
-      padding-left: 1.2em;
-    }
-
-    /* 2. Improve link visibility */
-    #out a {
-      color: #66ccff; /* light blue for readability */
-      text-decoration: underline;
-    }
-    #out a:visited {
-      color: #99ddff;
-    }
-    /* ===== END TWEAKS ===== */
+    /* Link visibility (unchanged intent) */
+    #out a { color: #66ccff; text-decoration: underline; }
+    #out a:visited { color: #99ddff; }
+    /* ===== END SPACING TWEAKS ===== */
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -60,7 +64,7 @@
       outEl.innerHTML = `<div style="color:yellow; font-size:14px;">DEBUG RAW:<br>${msg}</div>`;
     }
 
-    // Clean markdown to remove extra blank lines
+    // Clean markdown to remove extra blank lines (kept)
     function cleanMarkdown(md) {
       return md.replace(/\n{3,}/g, '\n\n'); // Replace 3+ line breaks with just 2
     }
@@ -68,10 +72,16 @@
     // Render safe markdown
     function safeRender(md) {
       try {
-        const cleaned = cleanMarkdown(md); // normalize spacing first
+        const cleaned = cleanMarkdown(md);
         const html = marked.parse(cleaned || '');
-        const clean = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
-        outEl.innerHTML = clean;
+        const purified = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+
+        // NEW: collapse repeated <br> and strip empty paragraphs (spacing only)
+        const squished = purified
+          .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
+          .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
+
+        outEl.innerHTML = squished;
       } catch (err) {
         console.error("Markdown render error:", err);
         outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
@@ -91,12 +101,12 @@
       safeRender(message);
     });
 
-    // Force links to open in a new window
+    // Force links to open in a new window (unchanged behavior)
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
       e.preventDefault();
-      window.open(a.href, '_blank'); // opens link externally
+      window.open(a.href, '_blank');
     });
   </script>
 </body>
