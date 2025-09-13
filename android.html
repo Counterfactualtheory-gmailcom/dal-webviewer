@@ -10,11 +10,27 @@
       padding: 0;
       background: #0c2d5a; /* Dal navy */
       color: #ffffff;
-      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; /* Reduced line-height */
     }
+
     #out {
-      padding: 16px;
+      padding: 12px; /* Slightly reduced padding */
       white-space: pre-wrap;
+    }
+
+    /* Hyperlinks: bright gold for visibility */
+    a {
+      color: #FFD700; /* Dal gold */
+      text-decoration: underline;
+    }
+
+    a:visited {
+      color: #FFD700; /* Keep visited links the same gold color */
+    }
+
+    /* Reduce excessive spacing between paragraphs */
+    p {
+      margin: 0 0 8px 0;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
