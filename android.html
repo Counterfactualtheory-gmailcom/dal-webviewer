@@ -18,6 +18,11 @@
       white-space: normal;
       /* Optional, mild tightening for perceived spacing inside content only */
       line-height: 1.35;
+
+      /* ✅ ADDED SCROLLING FIX */
+      overflow-y: auto; /* Enables vertical scrolling */
+      -webkit-overflow-scrolling: touch; /* Smooth, native-style scrolling */
+      touch-action: pan-y; /* Allows vertical thumb swipes */
     }
 
     /* ===== SPACING TWEAKS ONLY ===== */
