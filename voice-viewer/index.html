@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DAL Voice Viewer</title>
+  <title>DAL Voice Assistant</title>
 
   <style>
     :root {
@@ -27,22 +27,53 @@
       font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
 
-    .wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad); text-align: center; }
+    .wrap {
+      max-width: var(--wrap);
+      margin: 0 auto;
+      padding: var(--pad);
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 12px;
+      color: var(--accent);
+    }
+
     button {
       background: var(--accent);
       color: #000;
       border: none;
       border-radius: 10px;
-      padding: 14px 20px;
+      padding: 14px 22px;
       font-size: 18px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 16px;
+      margin-top: 20px;
+      transition: background 0.2s ease;
     }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    #out { margin-top: 24px; text-align: left; }
+
+    button:hover {
+      background: #ffd84a;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #out {
+      margin-top: 28px;
+      text-align: left;
+      line-height: 1.6;
+    }
+
     a { color: var(--link); }
     a:visited { color: var(--link-visited); }
+
+    .error {
+      color: #ffb8b8;
+      font-weight: bold;
+    }
   </style>
 
   <!-- Dependencies -->
@@ -59,6 +90,9 @@
   </div>
 
   <script>
+    // ===============================
+    // Configuration
+    // ===============================
     const backendURL = "https://dalbackendproduction-production.up.railway.app/ask";
     const micBtn = document.getElementById("micBtn");
     const outEl = document.getElementById("out");
@@ -67,30 +101,35 @@
     let recognizing = false;
     let voices = [];
 
+    // Load available voices for TTS
     window.speechSynthesis.onvoiceschanged = () => {
       voices = window.speechSynthesis.getVoices();
     };
 
+    // Speak text aloud using SpeechSynthesis API
     function speak(text) {
       if (!text) return;
       const utter = new SpeechSynthesisUtterance(stripTags(text));
-      utter.lang = "en-CA";
-      utter.rate = 1.0;
-      utter.pitch = 1.0;
+      utter.lang = "en-CA";    // Language (can be changed)
+      utter.rate = 1.0;        // Speaking speed
+      utter.pitch = 1.0;       // Tone
       const voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
       if (voice) utter.voice = voice;
-      speechSynthesis.speak(utter);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
     }
 
+    // Strip HTML tags for cleaner TTS
     function stripTags(text) {
       const tmp = document.createElement("div");
       tmp.innerHTML = text;
       return tmp.textContent || tmp.innerText || "";
     }
 
+    // Start voice recognition
     function startRecognition() {
       if (!('webkitSpeechRecognition' in window)) {
-        alert("Speech recognition not supported in this browser.");
+        alert("Speech recognition not supported in this browser. Please use Chrome.");
         return;
       }
 
@@ -108,7 +147,7 @@
       recognition.onerror = (e) => {
         recognizing = false;
         micBtn.textContent = "🎤 Press to Speak";
-        outEl.innerHTML = `<span style="color:#ffaaaa">Error: ${e.error}</span>`;
+        outEl.innerHTML = `<span class="error">Error: ${e.error}</span>`;
       };
 
       recognition.onresult = (e) => {
@@ -127,6 +166,7 @@
       recognition.start();
     }
 
+    // Button click handler
     micBtn.addEventListener("click", () => {
       if (recognizing) {
         recognition.stop();
@@ -136,6 +176,7 @@
       startRecognition();
     });
 
+    // Send recognized text to the DAL backend
     async function sendToBackend(question) {
       try {
         const payload = { question };
@@ -144,15 +185,22 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+
         const data = await res.json();
         const answer = data.answer || "[No answer received]";
         const html = DOMPurify.sanitize(marked.parse(answer));
         outEl.innerHTML = `<b>Answer:</b><br>${html}`;
         speak(answer);
+
       } catch (err) {
-        outEl.innerHTML = `<span style="color:#ffaaaa">Backend error: ${err}</span>`;
+        outEl.innerHTML = `<span class="error">Backend error: ${err.message}</span>`;
       }
     }
+
+    // Ask for microphone permission early
+    navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {
+      outEl.innerHTML = `<span class="error">Microphone permission denied. Please enable it in browser settings.</span>`;
+    });
   </script>
 </body>
 </html>
