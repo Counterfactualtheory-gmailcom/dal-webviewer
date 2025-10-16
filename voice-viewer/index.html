@@ -13,7 +13,7 @@
       --accent: #f0c44c;   /* Dal gold */
       --text: #ffffff;     /* white text */
       --bg: #0c2d5a;       /* Dal navy */
-      --bg-page: #0c2d5a;  /* background navy */
+      --bg-page: #0c2d5a;  /* page background navy */
       --muted: #dbe7ff;
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
@@ -52,14 +52,8 @@
       transition: background 0.2s ease;
     }
 
-    button:hover {
-      background: #ffd84a;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    button:hover { background: #ffd84a; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
 
     #out {
       margin-top: 28px;
@@ -70,13 +64,10 @@
     a { color: var(--link); }
     a:visited { color: var(--link-visited); }
 
-    .error {
-      color: #ffb8b8;
-      font-weight: bold;
-    }
+    .error { color: #ffb8b8; font-weight: bold; }
   </style>
 
-  <!-- Dependencies -->
+  <!-- Markdown + Sanitizer -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 </head>
@@ -101,35 +92,51 @@
     let recognizing = false;
     let voices = [];
 
-    // Load available voices for TTS
+    // Load voices for speech synthesis
     window.speechSynthesis.onvoiceschanged = () => {
       voices = window.speechSynthesis.getVoices();
     };
 
-    // Speak text aloud using SpeechSynthesis API
+    // Speak the text aloud with best voice
     function speak(text) {
       if (!text) return;
       const utter = new SpeechSynthesisUtterance(stripTags(text));
-      utter.lang = "en-CA";    // Language (can be changed)
-      utter.rate = 1.0;        // Speaking speed
-      utter.pitch = 1.0;       // Tone
-      const voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
-      if (voice) utter.voice = voice;
+      utter.lang = "en-CA";
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+
+      // Prefer natural, female or neutral voices
+      const preferredVoices = [
+        "Google UK English Female",
+        "Google US English",
+        "Samantha",
+        "Karen",
+        "Daniel",
+        "Alex"
+      ];
+
+      const available = window.speechSynthesis.getVoices();
+      const match =
+        available.find(v => preferredVoices.includes(v.name)) ||
+        available.find(v => v.lang.startsWith("en")) ||
+        available[0];
+
+      if (match) utter.voice = match;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     }
 
-    // Strip HTML tags for cleaner TTS
+    // Strip HTML tags before reading aloud
     function stripTags(text) {
       const tmp = document.createElement("div");
       tmp.innerHTML = text;
       return tmp.textContent || tmp.innerText || "";
     }
 
-    // Start voice recognition
+    // Start microphone recognition
     function startRecognition() {
-      if (!('webkitSpeechRecognition' in window)) {
-        alert("Speech recognition not supported in this browser. Please use Chrome.");
+      if (!("webkitSpeechRecognition" in window)) {
+        alert("Speech recognition not supported. Please use Chrome.");
         return;
       }
 
@@ -144,13 +151,13 @@
         outEl.innerHTML = "<em>Listening...</em>";
       };
 
-      recognition.onerror = (e) => {
+      recognition.onerror = e => {
         recognizing = false;
         micBtn.textContent = "🎤 Press to Speak";
         outEl.innerHTML = `<span class="error">Error: ${e.error}</span>`;
       };
 
-      recognition.onresult = (e) => {
+      recognition.onresult = e => {
         recognizing = false;
         micBtn.textContent = "🎤 Press to Speak";
         const transcript = e.results[0][0].transcript;
@@ -166,7 +173,7 @@
       recognition.start();
     }
 
-    // Button click handler
+    // Handle button press
     micBtn.addEventListener("click", () => {
       if (recognizing) {
         recognition.stop();
@@ -176,14 +183,14 @@
       startRecognition();
     });
 
-    // Send recognized text to the DAL backend
+    // Send user question to backend
     async function sendToBackend(question) {
       try {
         const payload = { question };
         const res = await fetch(backendURL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payload)
         });
 
         const data = await res.json();
@@ -191,13 +198,12 @@
         const html = DOMPurify.sanitize(marked.parse(answer));
         outEl.innerHTML = `<b>Answer:</b><br>${html}`;
         speak(answer);
-
       } catch (err) {
         outEl.innerHTML = `<span class="error">Backend error: ${err.message}</span>`;
       }
     }
 
-    // Ask for microphone permission early
+    // Ask for microphone access early
     navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {
       outEl.innerHTML = `<span class="error">Microphone permission denied. Please enable it in browser settings.</span>`;
     });
