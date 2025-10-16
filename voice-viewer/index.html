@@ -13,7 +13,7 @@
       --accent: #f0c44c;   /* Dal gold */
       --text: #ffffff;     /* white text */
       --bg: #0c2d5a;       /* Dal navy */
-      --bg-page: #0c2d5a;  /* page background navy */
+      --bg-page: #0c2d5a;  /* background navy */
       --muted: #dbe7ff;
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
@@ -75,15 +75,12 @@
 <body>
   <div class="wrap">
     <h2>🎙️ DAL Voice Assistant</h2>
-    <p>Press the button and speak your question.</p>
+    <p>Speak naturally — interrupt anytime for clarification.</p>
     <button id="micBtn">🎤 Press to Speak</button>
     <div id="out"><em>Waiting for input…</em></div>
   </div>
 
   <script>
-    // ===============================
-    // Configuration
-    // ===============================
     const backendURL = "https://dalbackendproduction-production.up.railway.app/ask";
     const micBtn = document.getElementById("micBtn");
     const outEl = document.getElementById("out");
@@ -91,21 +88,21 @@
     let recognition;
     let recognizing = false;
     let voices = [];
+    let autoListen = false;
 
     // Load voices for speech synthesis
     window.speechSynthesis.onvoiceschanged = () => {
       voices = window.speechSynthesis.getVoices();
     };
 
-    // Speak the text aloud with best voice
-    function speak(text) {
+    // Improved speaking function (high quality voices)
+    function speak(text, cb) {
       if (!text) return;
       const utter = new SpeechSynthesisUtterance(stripTags(text));
       utter.lang = "en-CA";
       utter.rate = 1.0;
       utter.pitch = 1.0;
 
-      // Prefer natural, female or neutral voices
       const preferredVoices = [
         "Google UK English Female",
         "Google US English",
@@ -114,7 +111,6 @@
         "Daniel",
         "Alex"
       ];
-
       const available = window.speechSynthesis.getVoices();
       const match =
         available.find(v => preferredVoices.includes(v.name)) ||
@@ -122,6 +118,8 @@
         available[0];
 
       if (match) utter.voice = match;
+      utter.onend = () => { if (cb) cb(); };
+
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     }
@@ -149,6 +147,7 @@
         recognizing = true;
         micBtn.textContent = "🎧 Listening...";
         outEl.innerHTML = "<em>Listening...</em>";
+        window.speechSynthesis.cancel(); // stop current voice if speaking
       };
 
       recognition.onerror = e => {
@@ -168,6 +167,7 @@
       recognition.onend = () => {
         recognizing = false;
         micBtn.textContent = "🎤 Press to Speak";
+        if (autoListen) setTimeout(startRecognition, 400); // keep conversation open
       };
 
       recognition.start();
@@ -178,8 +178,10 @@
       if (recognizing) {
         recognition.stop();
         micBtn.textContent = "🎤 Press to Speak";
+        autoListen = false;
         return;
       }
+      autoListen = true;
       startRecognition();
     });
 
@@ -196,8 +198,11 @@
         const data = await res.json();
         const answer = data.answer || "[No answer received]";
         const html = DOMPurify.sanitize(marked.parse(answer));
-        outEl.innerHTML = `<b>Answer:</b><br>${html}`;
-        speak(answer);
+        outEl.innerHTML = `<b>Assistant:</b><br>${html}`;
+        speak(answer, () => {
+          if (autoListen) startRecognition(); // auto resume listening
+        });
+
       } catch (err) {
         outEl.innerHTML = `<span class="error">Backend error: ${err.message}</span>`;
       }
@@ -205,7 +210,8 @@
 
     // Ask for microphone access early
     navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {
-      outEl.innerHTML = `<span class="error">Microphone permission denied. Please enable it in browser settings.</span>`;
+      outEl.innerHTML =
+        `<span class="error">Microphone permission denied. Please enable it in browser settings.</span>`;
     });
   </script>
 </body>
