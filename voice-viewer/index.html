@@ -102,36 +102,36 @@
       voices = window.speechSynthesis.getVoices();
     };
 
-    // ===============================
-    // 🧠 Original browser TTS fallback
-    // ===============================
-    function speak(text, cb) {
-      if (!text) return;
-      const utter = new SpeechSynthesisUtterance(stripTags(text));
-      utter.lang = "en-CA";
-      utter.rate = 1.0;
-      utter.pitch = 1.0;
+// ===============================
+// 🔊 OpenAI Verse Voice (primary)
+// ===============================
+async function speak(text, cb) {
+  if (!text) return;
+  try {
+    const response = await fetch("https://dalbackendproduction-production.up.railway.app/voice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice: "verse" })
+    });
 
-      const preferredVoices = [
-        "Google UK English Female",
-        "Google US English",
-        "Samantha",
-        "Karen",
-        "Daniel",
-        "Alex"
-      ];
-      const available = window.speechSynthesis.getVoices();
-      const match =
-        available.find(v => preferredVoices.includes(v.name)) ||
-        available.find(v => v.lang.startsWith("en")) ||
-        available[0];
+    if (!response.ok) throw new Error("Failed to generate voice");
 
-      if (match) utter.voice = match;
-      utter.onend = () => { if (cb) cb(); };
-
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utter);
-    }
+    const audioBlob = await response.blob();
+    const audioURL = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioURL);
+    audio.onended = () => { if (cb) cb(); };
+    await audio.play();
+  } catch (err) {
+    console.error("🎧 OpenAI voice failed, falling back to browser TTS:", err);
+    // Fallback — use built-in speechSynthesis if backend call fails
+    const utter = new SpeechSynthesisUtterance(stripTags(text));
+    utter.lang = "en-CA";
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
+}
 
     // Strip HTML tags before reading aloud
     function stripTags(text) {
