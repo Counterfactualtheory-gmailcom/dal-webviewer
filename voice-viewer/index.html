@@ -78,24 +78,33 @@
     <p>Speak naturally — interrupt anytime for clarification.</p>
     <button id="micBtn">🎤 Press to Speak</button>
     <div id="out"><em>Waiting for input…</em></div>
+
+    <!-- 🔊 NEW: Audio element for realistic OpenAI voice playback -->
+    <audio id="voicePlayer" autoplay></audio>
   </div>
 
   <script>
     const backendURL = "https://dalbackendproduction-production.up.railway.app/ask";
+    // 🔊 NEW: voice route (handled safely in backend using OPENAI_API_KEY_DAL)
+    const voiceBackend = "https://dalbackendproduction-production.up.railway.app/voice";
+
     const micBtn = document.getElementById("micBtn");
     const outEl = document.getElementById("out");
+    const audioEl = document.getElementById("voicePlayer");
 
     let recognition;
     let recognizing = false;
     let voices = [];
     let autoListen = false;
 
-    // Load voices for speech synthesis
+    // Load browser fallback voices (kept intact)
     window.speechSynthesis.onvoiceschanged = () => {
       voices = window.speechSynthesis.getVoices();
     };
 
-    // Improved speaking function (high quality voices)
+    // ===============================
+    // 🧠 Original browser TTS fallback
+    // ===============================
     function speak(text, cb) {
       if (!text) return;
       const utter = new SpeechSynthesisUtterance(stripTags(text));
@@ -131,7 +140,9 @@
       return tmp.textContent || tmp.innerText || "";
     }
 
-    // Start microphone recognition
+    // ===============================
+    // 🎤 Speech Recognition
+    // ===============================
     function startRecognition() {
       if (!("webkitSpeechRecognition" in window)) {
         alert("Speech recognition not supported. Please use Chrome.");
@@ -148,6 +159,7 @@
         micBtn.textContent = "🎧 Listening...";
         outEl.innerHTML = "<em>Listening...</em>";
         window.speechSynthesis.cancel(); // stop current voice if speaking
+        audioEl.pause();
       };
 
       recognition.onerror = e => {
@@ -185,7 +197,9 @@
       startRecognition();
     });
 
-    // Send user question to backend
+    // ===============================
+    // 🔗 Backend: send user question
+    // ===============================
     async function sendToBackend(question) {
       try {
         const payload = { question };
@@ -199,8 +213,10 @@
         const answer = data.answer || "[No answer received]";
         const html = DOMPurify.sanitize(marked.parse(answer));
         outEl.innerHTML = `<b>Assistant:</b><br>${html}`;
-        speak(answer, () => {
-          if (autoListen) startRecognition(); // auto resume listening
+
+        // 🔊 NEW: Prefer OpenAI “verse” voice if available
+        playOpenAIVoice(answer, () => {
+          if (autoListen) startRecognition();
         });
 
       } catch (err) {
@@ -208,7 +224,36 @@
       }
     }
 
-    // Ask for microphone access early
+    // ===============================
+    // 🔊 NEW: Request OpenAI voice via DAL backend
+    // ===============================
+    async function playOpenAIVoice(text, cb) {
+      try {
+        const response = await fetch(voiceBackend, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, voice: "verse" })
+        });
+
+        if (!response.ok) throw new Error("Failed to generate voice");
+
+        const audioBlob = await response.blob();
+        const audioURL = URL.createObjectURL(audioBlob);
+        audioEl.src = audioURL;
+
+        audioEl.onended = () => {
+          if (cb) cb();
+        };
+      } catch (err) {
+        console.error("Voice generation error:", err);
+        // fallback to browser voice if OpenAI fails
+        speak(text, cb);
+      }
+    }
+
+    // ===============================
+    // 🎙 Ask for mic access early
+    // ===============================
     navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {
       outEl.innerHTML =
         `<span class="error">Microphone permission denied. Please enable it in browser settings.</span>`;
