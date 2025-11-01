@@ -186,6 +186,19 @@
         pingReady(); tries++;
       }, 600);
     });
+
+    /* 👇 NEW: force immediate single-tap on mobile (no long press) */
+    document.addEventListener('touchstart', function(e) {
+      const a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      e.preventDefault();
+      const url = a.href;
+      try {
+        ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
+      } catch (err) {
+        window.location.assign(url);
+      }
+    }, { passive: false });
   </script>
 </body>
 </html>
