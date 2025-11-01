@@ -124,6 +124,21 @@
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
+      // ✅ PATCH: make long-press or any tap region of a link trigger reliably
+  outEl.querySelectorAll('a').forEach(a => {
+  a.style.display = 'inline-block';
+  a.style.padding = '4px 2px';
+  a.style.cursor = 'pointer';
+  a.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const url = a.href;
+    if (/^https?:/i.test(url)) {
+      try { ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url); }
+      catch { window.location.assign(url); }
+    }
+  }, { passive: false });
+});
+      
       // ✅ PATCH: single-click opens URL in external browser (not WebViewer)
       if (!linkHandlerAttached) {
         outEl.addEventListener('click', (e) => {
