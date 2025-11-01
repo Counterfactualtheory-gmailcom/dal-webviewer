@@ -35,6 +35,13 @@
     a:visited{color:var(--link-visited)}
     a:hover, a:focus{opacity:.95}
 
+    /* Make the entire line clickable for each link */
+    #out a {
+    display: inline-block;
+    width: 100%;
+    padding: 4px 0;
+}
+    
     /* Force content colors inside #out */
     #out, #out *:not(a) { color: var(--text) !important; }
     #out a { color: var(--link) !important; }
