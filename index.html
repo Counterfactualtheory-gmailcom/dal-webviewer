@@ -138,27 +138,6 @@
     }
   }, { passive: false });
 });
-      
-      // ✅ PATCH: single-click opens URL in external browser (not WebViewer)
-      if (!linkHandlerAttached) {
-        outEl.addEventListener('click', (e) => {
-          const a = e.target.closest && e.target.closest('a[href]');
-          if (!a) return;
-          const url = a.href;
-          if (/^https?:/i.test(url)) {
-            e.preventDefault();
-            try {
-              // tell Thunkable to open externally
-              ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
-            } catch (err) {
-              // fallback for desktop testing
-              window.location.assign(url);
-            }
-          }
-        });
-        linkHandlerAttached = true;
-      }
-    }
 
     let firstMessageReceived = false;
     let readyPingerId = null;
