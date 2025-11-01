@@ -120,54 +120,43 @@
       }
 
       const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target','rel'] });
-
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
-      // ✅ Auto-summarize plain URLs into readable titles
+      /* 👇 NEW: Replace raw URLs with short descriptive titles */
       outEl.querySelectorAll('a').forEach(a => {
-        const txt = a.textContent.trim();
-        const href = a.href;
-        if (txt === href || txt.startsWith('http')) {
-          const map = [
-            { match: /conflict[_-]?of[_-]?interest/i, label: 'Conflict of Interest Policy' },
-            { match: /research[_-]?ethics/i, label: 'Research Ethics Board' },
-            { match: /equity[_-]?diversity[_-]?inclusion/i, label: 'Equity, Diversity & Inclusion' },
-            { match: /data[_-]?management/i, label: 'Research Data Management' },
-            { match: /tri[_-]?agency/i, label: 'Tri-Agency Guidelines' },
-            { match: /grants?/i, label: 'Research Grants & Funding' },
-            { match: /policy/i, label: 'Policy Document' },
-            { match: /pdf$/i, label: 'Download PDF' }
-          ];
-          for (const { match, label } of map) {
-            if (match.test(href)) {
-              a.textContent = label;
-              return;
-            }
+        const href = a.getAttribute('href');
+        if (!href) return;
+        const map = {
+          'conflict_of_interest': 'McGill Conflict of Interest Regulation',
+          'research_ethics': 'Research Ethics Board (REB)',
+          'research_data_management': 'Tri-Agency Research Data Management Policy',
+          'equity_diversity_inclusion': 'Equity, Diversity & Inclusion Resources',
+          'tri-agency': 'Tri-Agency Guidelines',
+          '.pdf': 'Download PDF Document'
+        };
+        for (const key in map) {
+          if (href.includes(key) && a.textContent === href) {
+            a.textContent = map[key];
+            break;
           }
-          try {
-            const u = new URL(href);
-            a.textContent = u.hostname.replace(/^www\./, '') + ' link';
-          } catch { /* ignore */ }
         }
       });
 
-      // ✅ PATCH: add touchend (single tap) + click fallback
+      // ✅ PATCH: single-click opens URL in external browser (not WebViewer)
       if (!linkHandlerAttached) {
-        ['touchend','click'].forEach(evt => {
-          outEl.addEventListener(evt, (e) => {
-            const a = e.target.closest && e.target.closest('a[href]');
-            if (!a) return;
-            const url = a.href;
-            if (/^https?:/i.test(url)) {
-              e.preventDefault();
-              try {
-                ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
-              } catch (err) {
-                window.location.assign(url);
-              }
+        outEl.addEventListener('click', (e) => {
+          const a = e.target.closest && e.target.closest('a[href]');
+          if (!a) return;
+          const url = a.href;
+          if (/^https?:/i.test(url)) {
+            e.preventDefault();
+            try {
+              ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
+            } catch (err) {
+              window.location.assign(url);
             }
-          });
+          }
         });
         linkHandlerAttached = true;
       }
@@ -214,19 +203,6 @@
         pingReady(); tries++;
       }, 600);
     });
-
-    /* 👇 NEW: force immediate single-tap on mobile (no long press) */
-    document.addEventListener('touchstart', function(e) {
-      const a = e.target.closest && e.target.closest('a[href]');
-      if (!a) return;
-      e.preventDefault();
-      const url = a.href;
-      try {
-        ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
-      } catch (err) {
-        window.location.assign(url);
-      }
-    }, { passive: false });
   </script>
 </body>
 </html>
