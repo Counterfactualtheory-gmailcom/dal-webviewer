@@ -124,6 +124,34 @@
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
+      // ✅ Auto-summarize plain URLs into readable titles
+      outEl.querySelectorAll('a').forEach(a => {
+        const txt = a.textContent.trim();
+        const href = a.href;
+        if (txt === href || txt.startsWith('http')) {
+          const map = [
+            { match: /conflict[_-]?of[_-]?interest/i, label: 'Conflict of Interest Policy' },
+            { match: /research[_-]?ethics/i, label: 'Research Ethics Board' },
+            { match: /equity[_-]?diversity[_-]?inclusion/i, label: 'Equity, Diversity & Inclusion' },
+            { match: /data[_-]?management/i, label: 'Research Data Management' },
+            { match: /tri[_-]?agency/i, label: 'Tri-Agency Guidelines' },
+            { match: /grants?/i, label: 'Research Grants & Funding' },
+            { match: /policy/i, label: 'Policy Document' },
+            { match: /pdf$/i, label: 'Download PDF' }
+          ];
+          for (const { match, label } of map) {
+            if (match.test(href)) {
+              a.textContent = label;
+              return;
+            }
+          }
+          try {
+            const u = new URL(href);
+            a.textContent = u.hostname.replace(/^www\./, '') + ' link';
+          } catch { /* ignore */ }
+        }
+      });
+
       // ✅ PATCH: add touchend (single tap) + click fallback
       if (!linkHandlerAttached) {
         ['touchend','click'].forEach(evt => {
