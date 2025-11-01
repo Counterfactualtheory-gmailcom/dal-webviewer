@@ -124,7 +124,7 @@
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
-      // ✅ PATCH: open links externally (not inside WebViewer)
+      // ✅ PATCH: single-click opens URL in external browser (not WebViewer)
       if (!linkHandlerAttached) {
         outEl.addEventListener('click', (e) => {
           const a = e.target.closest && e.target.closest('a[href]');
@@ -133,11 +133,11 @@
           if (/^https?:/i.test(url)) {
             e.preventDefault();
             try {
-              // Send instruction to Thunkable to open externally
-              ThunkableWebviewerExtension.postMessage('OPEN_EXTERNAL::' + url);
+              // tell Thunkable to open externally
+              ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
             } catch (err) {
-              // Fallback for web testing (opens outside)
-              window.location.href = url;
+              // fallback for desktop testing
+              window.location.assign(url);
             }
           }
         });
