@@ -15,6 +15,8 @@
       --bg: #0c2d5a;               /* Dal navy */
       --bg-page: #0c2d5a;          /* page background same navy */
       --muted: #dbe7ff;
+
+      /* dedicated link colours (light blue) */
       --link: #9cc9ff;
       --link-visited: #c8e0ff;
     }
@@ -28,10 +30,12 @@
     }
     .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
 
+    /* Links: light blue */
     a{word-break:break-word;text-decoration:underline;color:var(--link)}
     a:visited{color:var(--link-visited)}
     a:hover, a:focus{opacity:.95}
 
+    /* Force content colors inside #out */
     #out, #out *:not(a) { color: var(--text) !important; }
     #out a { color: var(--link) !important; }
     #out a:visited { color: var(--link-visited) !important; }
@@ -52,43 +56,17 @@
       font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       white-space:pre-wrap;margin-top:8px;color:#bfe1ff; display:none;
     }
-
-    /* overlay viewer */
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: #fff;
-      z-index: 9999;
-      display: none;
-      flex-direction: column;
-    }
-    #overlay iframe {
-      border: none;
-      flex: 1;
-      width: 100%;
-    }
-    #overlay-header {
-      background: var(--bg);
-      color: var(--text);
-      padding: 10px 16px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-    }
-    #overlay-header button {
-      background: none;
-      border: none;
-      color: var(--link);
-      font-size: 16px;
-      cursor: pointer;
-      margin-right: 8px;
-    }
   </style>
 
+  <!-- Markdown parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Sanitizer -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <!-- Auto-link bare URLs/emails AFTER markdown -->
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify-html.min.js"></script>
+
+  <!-- Thunkable WebViewer bridge -->
   <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 </head>
 
@@ -98,40 +76,18 @@
     <div id="dbg" class="debug"></div>
   </div>
 
-  <!-- Overlay viewer -->
-  <div id="overlay">
-    <div id="overlay-header">
-      <button id="backBtn">⬅ Back to App</button>
-      <span>External Page</span>
-    </div>
-    <iframe id="overlayFrame" allow="fullscreen; geolocation; clipboard-read; clipboard-write; autoplay; encrypted-media" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer-when-downgrade"></iframe>
-  </div>
-
   <script>
     marked.setOptions({ gfm:true, breaks:true, mangle:false, headerIds:false });
 
     const outEl   = document.getElementById('out');
     const dbgEl   = document.getElementById('dbg');
-    const overlay = document.getElementById('overlay');
-    const overlayFrame = document.getElementById('overlayFrame');
-    const backBtn = document.getElementById('backBtn');
     const showDebug = /[?&]debug=1\b/.test(location.search);
-    let linkHandlerAttached = false;
+    let linkHandlerAttached = false; // PATCH: ensure click handler added only once
 
     function debug(msg){
       if(!showDebug) return;
       dbgEl.style.display = 'block';
       dbgEl.textContent += (dbgEl.textContent ? '\n' : '') + msg;
-    }
-
-    backBtn.addEventListener('click', () => {
-      overlay.style.display = 'none';
-      overlayFrame.src = 'about:blank';
-    });
-
-    function openInOverlay(url){
-      overlayFrame.src = url;
-      overlay.style.display = 'flex';
     }
 
     function stripControlTags(md){
@@ -145,6 +101,8 @@
     function safeRender(md){
       const raw = stripControlTags(md);
       const html = marked.parse(raw || '');
+      debug('marked html length=' + html.length);
+
       const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target','rel'] });
 
       let linked = clean1;
@@ -157,12 +115,16 @@
             attributes: { rel: 'noopener', target: '_blank' }
           });
         }
-      } catch(e){ debug('linkify error: ' + e); }
+      } catch(e){
+        debug('linkify error: ' + e);
+      }
 
       const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target','rel'] });
+
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
+      // ✅ REVISED: open links instantly in external browser (no long-press)
       if (!linkHandlerAttached) {
         outEl.addEventListener('click', (e) => {
           const a = e.target.closest && e.target.closest('a[href]');
@@ -170,7 +132,7 @@
           const url = a.href;
           if (/^https?:/i.test(url)) {
             e.preventDefault();
-            openInOverlay(url);
+            window.open(url, '_blank'); // single-tap direct open
           }
         });
         linkHandlerAttached = true;
@@ -185,6 +147,7 @@
         firstMessageReceived = true;
         if (readyPingerId) { clearInterval(readyPingerId); readyPingerId = null; }
         const payload = (msg && typeof msg === 'object' && 'payload' in msg) ? msg.payload : msg;
+        debug('received message; type=' + (typeof payload) + ' length=' + (String(payload||'').length));
         safeRender(payload);
       } catch(err){
         outEl.textContent = 'Render error: ' + err;
@@ -193,18 +156,22 @@
     });
 
     function pingReady(){
-      try { ThunkableWebviewerExtension.postMessage('ready'); }
-      catch(e){ debug('postMessage error: ' + e); }
+      try {
+        ThunkableWebviewerExtension.postMessage('ready');
+        debug('posted "ready" via Thunkable extension');
+      } catch(e){ debug('postMessage error: ' + e); }
     }
 
     function hashTest(){
       if (location.hash && location.hash.length > 1){
         const md = decodeURIComponent(location.hash.slice(1));
+        debug('hash test length=' + md.length);
         safeRender(md);
       }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      debug('DOMContentLoaded');
       hashTest();
       pingReady();
       let tries = 0;
