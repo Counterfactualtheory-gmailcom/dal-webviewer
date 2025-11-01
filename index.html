@@ -124,22 +124,22 @@
       outEl.innerHTML = clean2 || '<span class="muted">[empty]</span>';
       outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
 
-      // ✅ PATCH: single-click opens URL in external browser (not WebViewer)
+      // ✅ PATCH: add touchend (single tap) + click fallback
       if (!linkHandlerAttached) {
-        outEl.addEventListener('click', (e) => {
-          const a = e.target.closest && e.target.closest('a[href]');
-          if (!a) return;
-          const url = a.href;
-          if (/^https?:/i.test(url)) {
-            e.preventDefault();
-            try {
-              // tell Thunkable to open externally
-              ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
-            } catch (err) {
-              // fallback for desktop testing
-              window.location.assign(url);
+        ['touchend','click'].forEach(evt => {
+          outEl.addEventListener(evt, (e) => {
+            const a = e.target.closest && e.target.closest('a[href]');
+            if (!a) return;
+            const url = a.href;
+            if (/^https?:/i.test(url)) {
+              e.preventDefault();
+              try {
+                ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
+              } catch (err) {
+                window.location.assign(url);
+              }
             }
-          }
+          });
         });
         linkHandlerAttached = true;
       }
