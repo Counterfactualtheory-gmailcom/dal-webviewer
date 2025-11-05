@@ -89,6 +89,20 @@
           .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
           .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
 
+// ✅ Force all URLs to remain in English (remove language subfolders or localized variants)
+const englishLinks = squished.replace(
+  /https:\/\/(?:www\.)?dal\.ca\/(fr|es|zh|ar|de|pt|it|ja|ko)\//gi,
+  'https://www.dal.ca/'
+);
+
+// ✅ Ensure translated anchor text keeps the English link (preserve href unchanged)
+const preserveEnglish = englishLinks.replace(
+  /<a\s+href="(https:\/\/[^\s"<>]+dal\.ca[^\s"<>]*)"[^>]*>(.*?)<\/a>/gi,
+  (match, href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`
+);
+
+outEl.innerHTML = preserveEnglish;
+   
         outEl.innerHTML = squished;
       } catch (err) {
         console.error("Markdown render error:", err);
