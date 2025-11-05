@@ -116,8 +116,8 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   const url = a.href.trim();
 
-  // 🚫 Only allow official Dalhousie English URLs
-  if (!/^https:\/\/(www\.)?dal\.ca/.test(url)) {
+  // ✅ Allow Dalhousie main domain and any subdomains (cdn.dal.ca, libraries.dal.ca, etc.)
+  if (!/^https:\/\/([a-z0-9-]+\.)*dal\.ca/i.test(url)) {
     console.warn('Blocked non-Dalhousie or translated link:', url);
     return;
   }
