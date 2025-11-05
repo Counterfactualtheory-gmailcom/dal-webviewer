@@ -7,11 +7,11 @@
   <style>
     /* FIX: Enable internal scrolling on Android WebView */
     html, body {
-  height: 100%;
-  overflow-x: hidden;          /* Prevent horizontal scroll */
-  overflow-y: scroll !important; /* Force vertical scroll */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling for Android */
-}
+      height: 100%;
+      overflow-x: hidden;          /* Prevent horizontal scroll */
+      overflow-y: scroll !important; /* Force vertical scroll */
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling for Android */
+    }
 
     body {
       margin: 0;
@@ -77,32 +77,24 @@
       return md.replace(/\n{3,}/g, '\n\n'); // Replace 3+ line breaks with just 2
     }
 
-// Render safe markdown
-function safeRender(md) {
-  try {
-    const cleaned = cleanMarkdown(md);
-    const html = marked.parse(cleaned || '');
-    const purified = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+    // Render safe markdown
+    function safeRender(md) {
+      try {
+        const cleaned = cleanMarkdown(md);
+        const html = marked.parse(cleaned || '');
+        const purified = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
 
-    // NEW: collapse repeated <br> and strip empty paragraphs (spacing only)
-    const squished = purified
-      .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
-      .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
+        // NEW: collapse repeated <br> and strip empty paragraphs (spacing only)
+        const squished = purified
+          .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
+          .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
 
-    // ✅ Replace raw visible URLs with descriptive link text (Dalhousie only)
-    const prettified = squished.replace(
-      /<a\s+href="(https:\/\/[^\s"<>]+dal\.ca[^\s"<>]*)">(https:\/\/[^\s"<>]+dal\.ca[^\s"<>]*)<\/a>/gi,
-      (m, href) => `<a href="${href}" target="_blank" rel="noopener">Dalhousie official link</a>`
-    );
-
-    // ✅ Render prettified HTML
-    outEl.innerHTML = prettified;
-
-  } catch (err) {
-    console.error("Markdown render error:", err);
-    outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
-  }
-}
+        outEl.innerHTML = squished;
+      } catch (err) {
+        console.error("Markdown render error:", err);
+        outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
+      }
+    }
 
     // Ready signal
     try {
@@ -117,13 +109,13 @@ function safeRender(md) {
       safeRender(message);
     });
 
-// Force links to open in a new window (original behaviour)
-document.addEventListener('click', (e) => {
-  const a = e.target.closest('a[href]');
-  if (!a) return;
-  e.preventDefault();
-  window.open(a.href, '_blank');
-});
+    // Force links to open in a new window (unchanged behavior)
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      e.preventDefault();
+      window.open(a.href, '_blank');
+    });
   </script>
 </body>
 </html>
