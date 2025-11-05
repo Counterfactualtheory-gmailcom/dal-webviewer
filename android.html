@@ -101,6 +101,7 @@ const preserveEnglish = englishLinks.replace(
   (match, href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`
 );
 
+// ✅ Render final HTML
 outEl.innerHTML = preserveEnglish;
    
         outEl.innerHTML = squished;
