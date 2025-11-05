@@ -109,13 +109,27 @@
       safeRender(message);
     });
 
-    // Force links to open in a new window (unchanged behavior)
-    document.addEventListener('click', (e) => {
-      const a = e.target.closest('a[href]');
-      if (!a) return;
-      e.preventDefault();
-      window.open(a.href, '_blank');
-    });
+// ✅ OPEN LINKS EXTERNALLY (matches iOS behaviour)
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  e.preventDefault();
+  const url = a.href.trim();
+
+  // 🚫 Only allow official Dalhousie English URLs
+  if (!/^https:\/\/(www\.)?dal\.ca/.test(url)) {
+    console.warn('Blocked non-Dalhousie or translated link:', url);
+    return;
+  }
+
+  try {
+    // 🟢 Open externally – Android will show "Return to DAL App"
+    ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
+  } catch (err) {
+    console.warn('Thunkable external open failed, using fallback:', err);
+    window.location.assign(url); // fallback for web testing
+  }
+});
   </script>
 </body>
 </html>
