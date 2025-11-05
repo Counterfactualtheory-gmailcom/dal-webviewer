@@ -109,27 +109,12 @@
       safeRender(message);
     });
 
-// ✅ ANDROID-ONLY: open Dal links externally and trigger "Return to App" bar
+// Force links to open in a new window (original behaviour)
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href]');
   if (!a) return;
   e.preventDefault();
-  const url = a.href.trim();
-
-  // Optional safety: only allow dal.ca or official subdomains
-  const isDal = /^https:\/\/([a-z0-9-]+\.)*dal\.ca/i.test(url);
-  if (!isDal) {
-    console.warn('Blocked non-Dal link:', url);
-    return;
-  }
-
-  try {
-    // 👇 Android WebView opens external browser (shows "Return to App")
-    window.location.href = url;
-  } catch (err) {
-    console.error('Fallback to window.open:', err);
-    window.open(url, '_blank');
-  }
+  window.open(a.href, '_blank');
 });
   </script>
 </body>
