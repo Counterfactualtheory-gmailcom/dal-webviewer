@@ -89,7 +89,18 @@
           .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
           .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
 
-        outEl.innerHTML = squished;
+// ✅ Normalize Dalhousie links to English canonical form
+const normalized = squished.replace(
+  /<a\s+href="https:\/\/(?:www\.)?dal\.ca\/(?:es|fr|zh|ar|de|pt|it|ja|ko)\/([^"]*)"([^>]*)>(.*?)<\/a>/gi,
+  (match, path, attrs, text) => {
+    const englishHref = `https://www.dal.ca/${path}`;
+    return `<a href="${englishHref}" target="_blank" rel="noopener"${attrs}>${text}</a>`;
+  }
+);
+
+// ✅ Render the cleaned, normalized HTML
+outEl.innerHTML = normalized;
+        
       } catch (err) {
         console.error("Markdown render error:", err);
         outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
