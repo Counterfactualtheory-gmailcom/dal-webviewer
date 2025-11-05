@@ -7,11 +7,11 @@
   <style>
     /* FIX: Enable internal scrolling on Android WebView */
     html, body {
-      height: 100%;
-      overflow-x: hidden;          /* Prevent horizontal scroll */
-      overflow-y: scroll !important; /* Force vertical scroll */
-      -webkit-overflow-scrolling: touch; /* Smooth scrolling for Android */
-    }
+  height: 100%;
+  overflow-x: hidden;          /* Prevent horizontal scroll */
+  overflow-y: scroll !important; /* Force vertical scroll */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling for Android */
+}
 
     body {
       margin: 0;
@@ -89,21 +89,6 @@
           .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
           .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
 
-// ✅ Force all URLs to remain in English (remove language subfolders or localized variants)
-const englishLinks = squished.replace(
-  /https:\/\/(?:www\.)?dal\.ca\/(fr|es|zh|ar|de|pt|it|ja|ko)\//gi,
-  'https://www.dal.ca/'
-);
-
-// ✅ Ensure translated anchor text keeps the English link (preserve href unchanged)
-const preserveEnglish = englishLinks.replace(
-  /<a\s+href="(https:\/\/[^\s"<>]+dal\.ca[^\s"<>]*)"[^>]*>(.*?)<\/a>/gi,
-  (match, href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`
-);
-
-// ✅ Render final HTML
-outEl.innerHTML = preserveEnglish;
-   
         outEl.innerHTML = squished;
       } catch (err) {
         console.error("Markdown render error:", err);
@@ -124,7 +109,7 @@ outEl.innerHTML = preserveEnglish;
       safeRender(message);
     });
 
-    // Force links to open in a new window (unchanged behavior)
+    // Force links to open in a new window (original behaviour)
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href]');
       if (!a) return;
