@@ -77,36 +77,32 @@
       return md.replace(/\n{3,}/g, '\n\n'); // Replace 3+ line breaks with just 2
     }
 
-    // Render safe markdown
-    function safeRender(md) {
-      try {
-        const cleaned = cleanMarkdown(md);
-        const html = marked.parse(cleaned || '');
-        const purified = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+// Render safe markdown
+function safeRender(md) {
+  try {
+    const cleaned = cleanMarkdown(md);
+    const html = marked.parse(cleaned || '');
+    const purified = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
 
-        // NEW: collapse repeated <br> and strip empty paragraphs (spacing only)
-        const squished = purified
-          .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')               // <br><br>... -> <br>
-          .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');              // remove empty <p>
+    // Collapse repeated <br> and strip empty paragraphs (spacing only)
+    const squished = purified
+      .replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '<br>')
+      .replace(/\s*<p>(?:\s|&nbsp;)*<\/p>\s*/gi, '');
 
-// ✅ Normalize Dalhousie links to English canonical form
-const normalized = squished.replace(
-  /<a\s+href="https:\/\/(?:www\.)?dal\.ca\/(?:es|fr|zh|ar|de|pt|it|ja|ko)\/([^"]*)"([^>]*)>(.*?)<\/a>/gi,
-  (match, path, attrs, text) => {
-    const englishHref = `https://www.dal.ca/${path}`;
-    return `<a href="${englishHref}" target="_blank" rel="noopener"${attrs}>${text}</a>`;
+    // ✅ Normalize any Dalhousie URLs that have a language subfolder
+    //    e.g. https://www.dal.ca/es/campus_life/... → https://www.dal.ca/campus_life/...
+    const normalized = squished.replace(
+      /https:\/\/(?:www\.)?dal\.ca\/(?:es|fr|zh|ar|de|pt|it|ja|ko)\//gi,
+      'https://www.dal.ca/'
+    );
+
+    // Render final HTML
+    outEl.innerHTML = normalized;
+  } catch (err) {
+    console.error("Markdown render error:", err);
+    outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
   }
-);
-
-// ✅ Render the cleaned, normalized HTML
-outEl.innerHTML = normalized;
-        
-      } catch (err) {
-        console.error("Markdown render error:", err);
-        outEl.innerHTML = `<span style="color:red;">Render error - bad markdown</span>`;
-      }
-    }
-
+}
     // Ready signal
     try {
       ThunkableWebviewerExtension.postMessage('ready-android');
