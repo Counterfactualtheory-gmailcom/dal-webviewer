@@ -109,25 +109,26 @@
       safeRender(message);
     });
 
-// ✅ OPEN LINKS EXTERNALLY (matches iOS behaviour)
+// ✅ ANDROID-ONLY: open Dal links externally and trigger "Return to App" bar
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href]');
   if (!a) return;
   e.preventDefault();
   const url = a.href.trim();
 
-  // ✅ Allow Dalhousie main domain and any subdomains (cdn.dal.ca, libraries.dal.ca, etc.)
-  if (!/^https:\/\/([a-z0-9-]+\.)*dal\.ca/i.test(url)) {
-    console.warn('Blocked non-Dalhousie or translated link:', url);
+  // Optional safety: only allow dal.ca or official subdomains
+  const isDal = /^https:\/\/([a-z0-9-]+\.)*dal\.ca/i.test(url);
+  if (!isDal) {
+    console.warn('Blocked non-Dal link:', url);
     return;
   }
 
   try {
-    // 🟢 Open externally – Android will show "Return to DAL App"
-    ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url);
+    // 👇 Android WebView opens external browser (shows "Return to App")
+    window.location.href = url;
   } catch (err) {
-    console.warn('Thunkable external open failed, using fallback:', err);
-    window.location.assign(url); // fallback for web testing
+    console.error('Fallback to window.open:', err);
+    window.open(url, '_blank');
   }
 });
   </script>
