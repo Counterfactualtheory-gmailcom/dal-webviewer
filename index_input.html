@@ -9,12 +9,12 @@
     margin: 0;
     padding: 0;
     font-family: "Roboto", sans-serif;
-    background-color: #000;
+    background-color: #9B9B9B; /* Dalhousie Grey */
     color: #f8c600;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between; /* fills full height */
+    justify-content: center;
     min-height: 100vh;
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
@@ -22,7 +22,7 @@
 
   header {
     text-align: center;
-    margin-top: 20px; /* pushes header closer to top */
+    margin-bottom: 20px;
   }
 
   header img {
@@ -38,24 +38,21 @@
 
   .subtitle {
     font-size: 14px;
-    color: #3399ff;
+    color: #333;
     margin-top: 4px;
-    margin-bottom: 8px; /* tighter spacing above box */
   }
 
   .input-box {
     background-color: #111;
     border: 2px solid #f8c600;
     border-radius: 12px;
-    padding: 12px;
-    width: 95%; /* ✅ stretched closer to screen edges */
-    max-width: 460px;
+    padding: 16px;
+    width: 85%;
+    max-width: 420px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     box-shadow: 0 0 8px rgba(248, 198, 0, 0.3);
-    margin-top: 0; /* ✅ sits right below subtitle */
-    margin-bottom: 40px; /* keeps Submit above bottom edge */
   }
 
   textarea {
@@ -65,11 +62,10 @@
     border: none;
     outline: none;
     resize: none;
-    height: 180px; /* ✅ slightly taller for balance */
+    height: 160px;
     background-color: #fff;
     color: #000;
     margin-bottom: 12px;
-    width: 100%; /* ✅ full width inside gold box */
   }
 
   button {
@@ -91,27 +87,99 @@
   footer {
     margin-top: 20px;
     font-size: 13px;
-    color: #aaa;
+    color: #333;
     text-align: center;
   }
+
+  /* ✅ Toast popup styling */
+  #toast {
+    visibility: hidden;
+    min-width: 200px;
+    background-color: #f8c600;
+    color: #000;
+    text-align: center;
+    border-radius: 6px;
+    padding: 12px;
+    position: fixed;
+    bottom: 30px;
+    z-index: 1;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 600;
+  }
+
+  #toast.show {
+    visibility: visible;
+    animation: fadein 0.3s, fadeout 0.3s 1.5s;
+  }
+
+  @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+  @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 10px; opacity: 0;} }
 </style>
 </head>
 <body>
   <header>
-    <!-- Removed Dalhousie logo -->
+    <img src="https://cdn.dal.ca/etc/designs/dalhousie/clientlibs/images/dal-logo-colour.svg" alt="Dalhousie Logo" />
     <h1>Dalhousie COMPAiSS</h1>
-    <div class="subtitle">Write in any language</div>
+    <div class="subtitle">Write in any language / Écrivez dans n’importe quelle langue</div>
   </header>
 
   <div class="input-box">
     <textarea id="inputBox" placeholder="Type your question or issue here…"></textarea>
-    <button onclick="sendInput()">Submit</button>
+    <button id="submitBtn">Submit</button>
   </div>
 
-  <!-- Removed Phase 1 Input Prototype footer -->
+  <footer>Phase 1 Input Prototype – COMPAiSS Combined Interface</footer>
+
+  <!-- ✅ Thunkable bridge -->
+  <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
+
+  <div id="toast">✅ Sent</div>
 
   <script>
     const inputBox = document.getElementById("inputBox");
+    const toast = document.getElementById("toast");
+    const submitBtn = document.getElementById("submitBtn");
+
+    // ✅ Confirm Thunkable bridge availability
+    function isBridgeReady() {
+      return (typeof window.ThunkableWebviewerExtension !== "undefined");
+    }
+
+    function showToast() {
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1800);
+    }
+
+    // ✅ Wait for bridge load event if needed
+    function whenBridgeReady(fn) {
+      if (isBridgeReady()) {
+        fn();
+      } else {
+        document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
+      }
+    }
+
+    // ✅ FIX APPLIED HERE — no popup alert
+    function sendInput() {
+      const message = inputBox.value.trim();
+      if (!message) {
+        alert("Please enter a question or issue.");
+        return;
+      }
+
+      whenBridgeReady(() => {
+        try {
+          window.ThunkableWebviewerExtension.postMessage(message);
+          showToast();
+        } catch (err) {
+          console.log("Bridge error:", err);
+          // Removed alert — silent log only
+        }
+      });
+
+      inputBox.value = "";
+    }
 
     // Allow Enter key to trigger send
     inputBox.addEventListener("keypress", (e) => {
@@ -121,21 +189,10 @@
       }
     });
 
-    function sendInput() {
-      const message = inputBox.value.trim();
-      if (!message) {
-        alert("Please enter a question or issue.");
-        return;
-      }
+    submitBtn.addEventListener("click", sendInput);
 
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(message);
-      } else {
-        alert("Message sent: " + message); // fallback for browser testing
-      }
-
-      inputBox.value = "";
-    }
+    // ✅ Debugging aid: confirm bridge readiness
+    console.log("Bridge script loaded:", isBridgeReady());
   </script>
 </body>
 </html>
