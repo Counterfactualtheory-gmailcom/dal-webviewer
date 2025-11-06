@@ -14,7 +14,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between; /* ✅ changed from center — fills full height */
+    justify-content: space-between; /* fills full height */
     min-height: 100vh;
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
@@ -22,7 +22,7 @@
 
   header {
     text-align: center;
-    margin-top: 20px; /* ✅ pushes header closer to top */
+    margin-top: 20px; /* pushes header closer to top */
   }
 
   header img {
@@ -40,6 +40,7 @@
     font-size: 14px;
     color: #3399ff;
     margin-top: 4px;
+    margin-bottom: 10px; /* ensures input box sits right below */
   }
 
   .input-box {
@@ -47,13 +48,14 @@
     border: 2px solid #f8c600;
     border-radius: 12px;
     padding: 16px;
-    width: 85%;
-    max-width: 420px;
+    width: 90%; /* slightly wider */
+    max-width: 440px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     box-shadow: 0 0 8px rgba(248, 198, 0, 0.3);
-    margin-bottom: 40px; /* ✅ ensures Submit stays above screen edge */
+    margin-top: 0; /* ensure it sits right below subtitle */
+    margin-bottom: 40px; /* keeps Submit above bottom edge */
   }
 
   textarea {
@@ -97,7 +99,7 @@
   <header>
     <!-- Removed Dalhousie logo -->
     <h1>Dalhousie COMPAiSS</h1>
-    <div class="subtitle">Write in any language / Écrivez dans n’importe quelle langue</div>
+    <div class="subtitle">Write in any language</div>
   </header>
 
   <div class="input-box">
