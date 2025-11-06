@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dalhousie COMPAiSS – Conversation Viewer</title>
+<style>
+  :root {
+    --dal-gold: #f8c600;
+    --dal-navy: #0c2d5a;
+    --light-blue: #9cc9ff;
+    --white: #ffffff;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Roboto", sans-serif;
+    background-color: var(--dal-navy);
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+  }
+
+  #chatContainer {
+    width: 95%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .bubble {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    margin: 6px 0;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+
+  .user {
+    background-color: var(--dal-gold);
+    color: #000;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+
+  .assistant {
+    background-color: #132f58;
+    color: var(--white);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+
+  .loading {
+    font-style: italic;
+    color: var(--light-blue);
+    align-self: flex-start;
+    margin: 6px 0;
+  }
+
+  #inputArea {
+    width: 95%;
+    max-width: 480px;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #followupInput {
+    width: 100%;
+    border-radius: 10px;
+    border: none;
+    padding: 10px;
+    font-size: 16px;
+    resize: none;
+    height: 80px;
+    margin-bottom: 8px;
+  }
+
+  button {
+    background-color: var(--dal-gold);
+    color: #000;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  button:hover {
+    background-color: #ffd500;
+  }
+
+  #copyBtn {
+    margin-top: 10px;
+    background-color: #1e4179;
+    color: var(--white);
+  }
+
+  #copyBtn:hover {
+    background-color: #285cb0;
+  }
+
+  a {
+    color: var(--light-blue);
+  }
+</style>
+</head>
+<body>
+  <div id="chatContainer">
+    <div class="assistant bubble">👋 Welcome to Dalhousie COMPAiSS.</div>
+  </div>
+
+  <div id="inputArea">
+    <textarea id="followupInput" placeholder="Type a follow-up question or additional info…"></textarea>
+    <button id="sendBtn">Submit</button>
+    <button id="copyBtn">Copy All</button>
+  </div>
+
+  <script>
+    const chatContainer = document.getElementById('chatContainer');
+    const inputBox = document.getElementById('followupInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const endpoint = "https://web-production-43cb.up.railway.app/ask";
+
+    let conversation = []; // retain full exchange for context
+
+    function appendBubble(role, text) {
+      const div = document.createElement('div');
+      if (role === 'user') div.className = 'user bubble';
+      else div.className = 'assistant bubble';
+      div.innerHTML = text;
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function appendLoading() {
+      const div = document.createElement('div');
+      div.className = 'loading';
+      div.textContent = "⏳ Answer coming…";
+      div.id = 'loadingMsg';
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function removeLoading() {
+      const el = document.getElementById('loadingMsg');
+      if (el) el.remove();
+    }
+
+    async function sendMessage() {
+      const message = inputBox.value.trim();
+      if (!message) return;
+
+      appendBubble('user', message);
+      conversation.push({ role: 'user', content: message });
+      inputBox.value = '';
+      appendLoading();
+
+      try {
+        const payload = {
+          question: message,
+          context: conversation.slice(-4) // keep recent context
+        };
+
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        removeLoading();
+
+        const answer = data.answer?.replace(/\[COMPLETED\]/g, '').trim() || "(no response)";
+        appendBubble('assistant', answer);
+        conversation.push({ role: 'assistant', content: answer });
+
+      } catch (err) {
+        removeLoading();
+        appendBubble('assistant', "<i style='color:#f88'>⚠️ Network error. Please try again.</i>");
+      }
+    }
+
+    function copyConversation() {
+      const text = conversation.map(x => 
+        (x.role === 'user' ? "You: " : "Assistant: ") + x.content
+      ).join("\n\n");
+      navigator.clipboard.writeText(text)
+        .then(() => alert("✅ Conversation copied to clipboard"))
+        .catch(() => alert("⚠️ Copy failed"));
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    inputBox.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    copyBtn.addEventListener('click', copyConversation);
+  </script>
+</body>
+</html>
