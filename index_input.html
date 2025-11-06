@@ -40,21 +40,21 @@
     font-size: 14px;
     color: #3399ff;
     margin-top: 4px;
-    margin-bottom: 10px; /* ensures input box sits right below */
+    margin-bottom: 8px; /* tighter spacing above box */
   }
 
   .input-box {
     background-color: #111;
     border: 2px solid #f8c600;
     border-radius: 12px;
-    padding: 16px;
-    width: 90%; /* slightly wider */
-    max-width: 440px;
+    padding: 12px;
+    width: 95%; /* ✅ stretched closer to screen edges */
+    max-width: 460px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     box-shadow: 0 0 8px rgba(248, 198, 0, 0.3);
-    margin-top: 0; /* ensure it sits right below subtitle */
+    margin-top: 0; /* ✅ sits right below subtitle */
     margin-bottom: 40px; /* keeps Submit above bottom edge */
   }
 
@@ -65,10 +65,11 @@
     border: none;
     outline: none;
     resize: none;
-    height: 160px;
+    height: 180px; /* ✅ slightly taller for balance */
     background-color: #fff;
     color: #000;
     margin-bottom: 12px;
+    width: 100%; /* ✅ full width inside gold box */
   }
 
   button {
