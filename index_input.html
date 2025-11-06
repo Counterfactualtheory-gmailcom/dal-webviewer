@@ -1,1 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dalhousie COMPAiSS Input</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Roboto", sans-serif;
+    background-color: #000;
+    color: #f8c600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
 
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  header img {
+    height: 60px;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #ccc;
+    margin-top: 4px;
+  }
+
+  .input-box {
+    background-color: #111;
+    border: 2px solid #f8c600;
+    border-radius: 12px;
+    padding: 16px;
+    width: 85%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    box-shadow: 0 0 8px rgba(248, 198, 0, 0.3);
+  }
+
+  textarea {
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    resize: none;
+    height: 160px;
+    background-color: #fff;
+    color: #000;
+    margin-bottom: 12px;
+  }
+
+  button {
+    background-color: #f8c600;
+    color: #000;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  button:hover {
+    background-color: #ffd500;
+  }
+
+  footer {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #aaa;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <img src="https://cdn.dal.ca/etc/designs/dalhousie/clientlibs/images/dal-logo-colour.svg" alt="Dalhousie Logo" />
+    <h1>Dalhousie COMPAiSS</h1>
+    <div class="subtitle">Write in any language / Écrivez dans n’importe quelle langue</div>
+  </header>
+
+  <div class="input-box">
+    <textarea id="inputBox" placeholder="Type your question or issue here…"></textarea>
+    <button onclick="sendInput()">Submit</button>
+  </div>
+
+  <footer>Phase 1 Input Prototype – COMPAiSS Combined Interface</footer>
+
+  <script>
+    const inputBox = document.getElementById("inputBox");
+
+    // Allow Enter key to trigger send
+    inputBox.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendInput();
+      }
+    });
+
+    function sendInput() {
+      const message = inputBox.value.trim();
+      if (!message) {
+        alert("Please enter a question or issue.");
+        return;
+      }
+
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(message);
+      } else {
+        alert("Message sent: " + message); // fallback for browser testing
+      }
+
+      inputBox.value = "";
+    }
+  </script>
+</body>
+</html>
