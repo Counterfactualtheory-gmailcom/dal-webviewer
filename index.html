@@ -187,27 +187,41 @@
     /* Copy & Follow-up logic */
     copyBtn.onclick=()=>{navigator.clipboard.writeText(outEl.innerText);copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy All',1500);};
 
-    followupBtn.onclick=async()=>{
-      const q=followupText.value.trim();
-      if(!q)return;
-      loading.style.display='block';
-      followupBtn.disabled=true;
-      try{
-        const res=await fetch('https://web-production-43cb.up.railway.app/ask',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          // 🔧 PATCH: send prior context for labeled answers
-          body:JSON.stringify({question:q,context:lastAnswer,followup:true})
-        });
-        const data=await res.json();
-        safeRender(data.answer||'(no response)');
-      }catch(err){
-        safeRender('⚠️ Error sending follow-up: '+err.message);
-      }
-      loading.style.display='none';
-      followupBtn.disabled=false;
-      followupText.value='';
-    };
+followupBtn.onclick = async () => {
+  const q = followupText.value.trim();
+  if (!q) return;
+
+  // ✅ Step 1 – Flash "Sent" confirmation for user feedback
+  followupBtn.innerHTML = '✅ Sent';
+  setTimeout(() => followupBtn.innerHTML = 'Submit Follow-Up', 1200);
+
+  // ✅ Step 2 – Show "Answer coming..." animated dots while backend processes
+  loading.style.display = 'block';
+  followupBtn.disabled = true;
+
+  try {
+    const res = await fetch('https://web-production-43cb.up.railway.app/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Preserve full context for labeled / follow-up answers
+      body: JSON.stringify({
+        question: q,
+        context: lastAnswer,
+        followup: true
+      })
+    });
+
+    const data = await res.json();
+    safeRender(data.answer || '(no response)');
+  } catch (err) {
+    safeRender('⚠️ Error sending follow-up: ' + err.message);
+  }
+
+  // ✅ Step 3 – Hide loading animation and reset form
+  loading.style.display = 'none';
+  followupBtn.disabled = false;
+  followupText.value = '';
+};
   </script>
 </body>
 </html>
