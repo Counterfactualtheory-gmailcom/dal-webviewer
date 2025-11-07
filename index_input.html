@@ -9,7 +9,7 @@
     margin: 0;
     padding: 0;
     font-family: "Roboto", sans-serif;
-    background-color: #0F4079; /* Dalhousie Blue */
+    background-color: #9B9B9B; /* Dalhousie Grey */
     color: #f8c600;
     display: flex;
     flex-direction: column;
@@ -25,6 +25,11 @@
     margin-bottom: 20px;
   }
 
+  header img {
+    height: 60px;
+    margin-bottom: 10px;
+  }
+
   h1 {
     font-size: 18px;
     font-weight: 600;
@@ -33,7 +38,7 @@
 
   .subtitle {
     font-size: 14px;
-    color: #6EC1FF; /* Light blue highlight */
+    color: #333;
     margin-top: 4px;
   }
 
@@ -79,6 +84,13 @@
     background-color: #ffd500;
   }
 
+  footer {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #333;
+    text-align: center;
+  }
+
   /* ✅ Toast popup styling */
   #toast {
     visibility: hidden;
@@ -98,7 +110,7 @@
 
   #toast.show {
     visibility: visible;
-    animation: fadein 0.3s, fadeout 0.3s 1.8s;
+    animation: fadein 0.3s, fadeout 0.3s 1.5s;
   }
 
   @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
@@ -107,8 +119,9 @@
 </head>
 <body>
   <header>
+    <img src="https://cdn.dal.ca/etc/designs/dalhousie/clientlibs/images/dal-logo-colour.svg" alt="Dalhousie Logo" />
     <h1>Dalhousie COMPAiSS</h1>
-    <div class="subtitle">Write in any language</div>
+    <div class="subtitle">Write in any language / Écrivez dans n’importe quelle langue</div>
   </header>
 
   <div class="input-box">
@@ -116,83 +129,70 @@
     <button id="submitBtn">Submit</button>
   </div>
 
+  <footer>Phase 1 Input Prototype – COMPAiSS Combined Interface</footer>
+
   <!-- ✅ Thunkable bridge -->
   <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 
   <div id="toast">✅ Sent</div>
 
-<script>
-  const inputBox = document.getElementById("inputBox");
-  const toast = document.getElementById("toast");
-  const submitBtn = document.getElementById("submitBtn");
+  <script>
+    const inputBox = document.getElementById("inputBox");
+    const toast = document.getElementById("toast");
+    const submitBtn = document.getElementById("submitBtn");
 
-  function isBridgeReady() {
-    return typeof window.ThunkableWebviewerExtension !== "undefined";
-  }
-
-  function showToast(text, duration = 1800) {
-    toast.textContent = text;
-    toast.className = "show";
-    setTimeout(() => {
-      toast.className = toast.className.replace("show", "");
-    }, duration);
-  }
-
-  function whenBridgeReady(fn) {
-    if (isBridgeReady()) fn();
-    else {
-      document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
-    }
-  }
-
-  // ✅ NEW robust send sequence
-  function sendInput() {
-    const message = inputBox.value.trim();
-    if (!message) {
-      alert("Please enter a question or issue.");
-      return;
+    // ✅ Confirm Thunkable bridge availability
+    function isBridgeReady() {
+      return (typeof window.ThunkableWebviewerExtension !== "undefined");
     }
 
-    whenBridgeReady(() => {
-      try {
-        // Step 1 — confirm bridge initialized
-        console.log("Bridge ready, sending:", message);
+    function showToast() {
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1800);
+    }
 
-        // Step 2 — tell WebViewer answer page to get ready
-        window.ThunkableWebviewerExtension.postMessage("READY_FOR_MESSAGE");
+    // ✅ Wait for bridge load event if needed
+    function whenBridgeReady(fn) {
+      if (isBridgeReady()) {
+        fn();
+      } else {
+        document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
+      }
+    }
 
-        // Step 3 — send question (twice, to ensure delivery)
-        setTimeout(() => {
+    // ✅ FIX APPLIED HERE — no popup alert
+    function sendInput() {
+      const message = inputBox.value.trim();
+      if (!message) {
+        alert("Please enter a question or issue.");
+        return;
+      }
+
+      whenBridgeReady(() => {
+        try {
           window.ThunkableWebviewerExtension.postMessage(message);
-        }, 300);
-        setTimeout(() => {
-          window.ThunkableWebviewerExtension.postMessage(message);
-        }, 900);
+          showToast();
+        } catch (err) {
+          console.log("Bridge error:", err);
+          // Removed alert — silent log only
+        }
+      });
 
-        // Step 4 — feedback to user
-        showToast("✅ Sent");
-        setTimeout(() => showToast("💬 Answer Coming...", 2000), 1000);
-      } catch (err) {
-        console.error("Bridge error:", err);
-        showToast("⚠️ Bridge Error");
+      inputBox.value = "";
+    }
+
+    // Allow Enter key to trigger send
+    inputBox.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendInput();
       }
     });
 
-    inputBox.value = "";
-  }
+    submitBtn.addEventListener("click", sendInput);
 
-  // Allow Enter key to submit
-  inputBox.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendInput();
-    }
-  });
-
-  // Click handler for Submit button
-  submitBtn.addEventListener("click", sendInput);
-
-  console.log("Bridge script loaded:", isBridgeReady());
-</script>
+    // ✅ Debugging aid: confirm bridge readiness
+    console.log("Bridge script loaded:", isBridgeReady());
+  </script>
 </body>
 </html>
