@@ -6,7 +6,7 @@
   <title>DAL Answer Viewer</title>
 
   <style>
-    :root{
+    :root {
       --wrap: 900px;
       --pad: 16px;
       --border: #e5e7eb;
@@ -19,92 +19,122 @@
       --link-visited: #c8e0ff;
     }
 
-    html,body{
-      margin:0;padding:0;
-      background:var(--bg-page);
-      color:var(--text);
-      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      -webkit-text-size-adjust:100%;
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-page);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
     }
-    .wrap{max-width:var(--wrap);margin:0 auto;padding:var(--pad)}
-    a{word-break:break-word;text-decoration:underline;color:var(--link)}
-    a:visited{color:var(--link-visited)}
-    a:hover,a:focus{opacity:.95}
 
-    #out,#out *:not(a){color:var(--text)!important;}
-    #out a{color:var(--link)!important;}
-    #out a:visited{color:var(--link-visited)!important;}
-    #out,#out *{background:transparent!important;}
-    #out blockquote{color:#eef2ff!important;}
-    #out table th,#out table td{border-color:var(--border)!important;}
+    .wrap {
+      max-width: var(--wrap);
+      margin: 0 auto;
+      padding: var(--pad);
+    }
 
-    pre,code{white-space:pre-wrap;word-break:break-word}
-    blockquote{margin:0 0 1em 0;padding-left:12px;
-      border-left:4px solid var(--border);color:#eef2ff}
-    table{border-collapse:collapse;width:100%;margin:.5em 0}
-    th,td{border:1px solid var(--border);padding:8px;vertical-align:top}
-    h1,h2,h3{margin-top:1.2em}
-    .muted{opacity:.9;color:var(--muted)}
-    .debug{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      white-space:pre-wrap;margin-top:8px;color:#bfe1ff;display:none;}
+    a {
+      word-break: break-word;
+      text-decoration: underline;
+      color: var(--link);
+    }
 
-/* follow-up UI (aligned fix) */
-#followup-box {
-  margin-top: 20px;
-  padding: 12px;
-  background: #102f60;
-  border-radius: 8px;
-  border: 2px solid var(--accent);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-  max-width: 420px;
-  margin-left: auto;
-  margin-right: auto;
-}
+    a:visited { color: var(--link-visited); }
+    a:hover, a:focus { opacity: .95; }
 
-#followup-text {
-  width: 100%;
-  min-height: 90px;
-  padding: 10px;
-  font-size: 15px;
-  border-radius: 6px;
-  border: none;
-  outline: none;
-  resize: none;
-  margin: 0; /* removes offset causing misalignment */
-  box-sizing: border-box;
-}
+    #out, #out *:not(a) { color: var(--text)!important; }
+    #out a { color: var(--link)!important; }
+    #out a:visited { color: var(--link-visited)!important; }
+    #out, #out * { background: transparent!important; }
+    #out blockquote { color: #eef2ff!important; }
+    #out table th, #out table td { border-color: var(--border)!important; }
 
-#followup-btn,
-#copy-btn {
-  margin-top: 8px;
-  width: 100%;
-  padding: 10px;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: var(--accent);
-  color: #000;
-}
+    pre, code { white-space: pre-wrap; word-break: break-word; }
+    blockquote {
+      margin: 0 0 1em 0;
+      padding-left: 12px;
+      border-left: 4px solid var(--border);
+      color: #eef2ff;
+    }
+    table { border-collapse: collapse; width: 100%; margin: .5em 0; }
+    th, td { border: 1px solid var(--border); padding: 8px; vertical-align: top; }
+    h1, h2, h3 { margin-top: 1.2em; }
+    .muted { opacity: .9; color: var(--muted); }
+    .debug {
+      font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      margin-top: 8px;
+      color: #bfe1ff;
+      display: none;
+    }
 
-#copy-btn {
-  background: #1e3a8a;
-  color: #fff;
-}
-#copy-btn:hover {
-  opacity: .9;
-}
+    /* ✅ Follow-up UI - centered and aligned */
+    #followup-box {
+      margin-top: 20px;
+      padding: 12px;
+      background: #102f60;
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+    }
 
-    /* animated dots */
-    #loading{display:none;text-align:center;margin-top:10px;font-weight:600;}
-    #loading span{animation:blink 1.4s infinite both}
-    #loading span:nth-child(2){animation-delay:.2s}
-    #loading span:nth-child(3){animation-delay:.4s}
-    @keyframes blink{0%,80%,100%{opacity:0;}40%{opacity:1;}}
+    #followup-text {
+      width: 100%;
+      min-height: 90px;
+      padding: 10px;
+      font-size: 15px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+      resize: none;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    #followup-btn,
+    #copy-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 10px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #000;
+    }
+
+    #copy-btn {
+      background: #1e3a8a;
+      color: #fff;
+    }
+
+    #copy-btn:hover { opacity: .9; }
+
+    /* ✅ Animated dots */
+    #loading {
+      display: none;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+
+    #loading span {
+      animation: blink 1.4s infinite both;
+    }
+
+    #loading span:nth-child(2) { animation-delay: .2s; }
+    #loading span:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -116,7 +146,7 @@
 
 <body>
   <div class="wrap">
-<div id="out"></div>
+    <div id="out"></div>
 
     <div id="followup-box">
       <textarea id="followup-text" placeholder="Type a follow-up question or add more information..."></textarea>
@@ -129,176 +159,138 @@
   </div>
 
   <script>
-    marked.setOptions({gfm:true,breaks:true,mangle:false,headerIds:false});
-    const outEl=document.getElementById('out');
-    const dbgEl=document.getElementById('dbg');
-    const showDebug=/[?&]debug=1\b/.test(location.search);
-    const followupBtn=document.getElementById('followup-btn');
-    const followupText=document.getElementById('followup-text');
-    const copyBtn=document.getElementById('copy-btn');
-    const loading=document.getElementById('loading');
-    let linkHandlerAttached=false;
-    let lastAnswer="";
+    marked.setOptions({ gfm: true, breaks: true, mangle: false, headerIds: false });
 
-    function debug(m){if(!showDebug)return;dbgEl.style.display='block';dbgEl.textContent+=(dbgEl.textContent?'\n':'')+m;}
+    const outEl = document.getElementById('out');
+    const dbgEl = document.getElementById('dbg');
+    const followupBtn = document.getElementById('followup-btn');
+    const followupText = document.getElementById('followup-text');
+    const copyBtn = document.getElementById('copy-btn');
+    const loading = document.getElementById('loading');
+    const showDebug = /[?&]debug=1\b/.test(location.search);
 
-    function stripControlTags(md){
-      // Removed all legacy markers including [COMPLETED]
-      return String(md||'')
-        .replace(/<<START ANSWER>>/g,'')
-        .replace(/<<END ANSWER>>/g,'')
-        .replace(/\[COMPLETED\]/gi,'')
+    let linkHandlerAttached = false;
+    let lastAnswer = '';
+    let firstMessageReceived = false;
+    let readyPingerId = null;
+
+    function debug(m) {
+      if (!showDebug) return;
+      dbgEl.style.display = 'block';
+      dbgEl.textContent += (dbgEl.textContent ? '\n' : '') + m;
+    }
+
+    function stripControlTags(md) {
+      return String(md || '')
+        .replace(/<<START ANSWER>>/g, '')
+        .replace(/<<END ANSWER>>/g, '')
+        .replace(/\[COMPLETED\]/gi, '')
         .trim();
     }
 
-    function enrichBareLinks(html){
-      // 🔧 PATCH: if model outputs raw "Verified Greenlist Source", replace with domain name
-      return html.replace(/>Verified Greenlist Source</g,(m)=>{
-        const match=/href="([^"]+)"/.exec(m);
-        if(!match)return m;
-        const domain=new URL(match[1]).hostname.replace(/^www\./,'');
-        return `>${domain}</`;
-      });
-    }
-
-    function safeRender(md){
-      const raw=stripControlTags(md);
-      const html=marked.parse(raw||'');
-      const clean1=DOMPurify.sanitize(html,{ADD_ATTR:['target','rel']});
-      let linked=clean1;
-      try{
-        if(typeof linkifyHtml==='function'){
-          linked=linkifyHtml(clean1,{defaultProtocol:'https',nl2br:false,
-            validate:{url:(v)=>/^https?:\/\//i.test(v)},
-            attributes:{rel:'noopener',target:'_blank'}});
+    function safeRender(md) {
+      const raw = stripControlTags(md);
+      const html = marked.parse(raw || '');
+      const clean1 = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+      let linked = clean1;
+      try {
+        if (typeof linkifyHtml === 'function') {
+          linked = linkifyHtml(clean1, {
+            defaultProtocol: 'https',
+            nl2br: false,
+            validate: { url: (v) => /^https?:\/\//i.test(v) },
+            attributes: { rel: 'noopener', target: '_blank' }
+          });
         }
-      }catch(e){debug('linkify error:'+e);}
-      const enriched=enrichBareLinks(linked);
-      const clean2=DOMPurify.sanitize(enriched,{ADD_ATTR:['target','rel']});
-      outEl.innerHTML+=(outEl.innerHTML?'<hr>':'')+clean2;
-      lastAnswer = outEl.innerText;  // keep for backend follow-up
-      copyBtn.dataset.fulltext = outEl.innerText;  // store full accumulated text for Copy All
-      outEl.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener';});
-      if(!linkHandlerAttached){
-        outEl.addEventListener('click',e=>{
-          const a=e.target.closest&&e.target.closest('a[href]');
-          if(!a)return;
-          const url=a.href;
-          if(/^https?:/i.test(url)){
+      } catch (e) { debug('linkify error:' + e); }
+      const clean2 = DOMPurify.sanitize(linked, { ADD_ATTR: ['target', 'rel'] });
+      outEl.innerHTML += (outEl.innerHTML ? '<hr>' : '') + clean2;
+      lastAnswer = outEl.innerText;
+      outEl.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+      if (!linkHandlerAttached) {
+        outEl.addEventListener('click', e => {
+          const a = e.target.closest && e.target.closest('a[href]');
+          if (!a) return;
+          const url = a.href;
+          if (/^https?:/i.test(url)) {
             e.preventDefault();
-            try{ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::'+url);}
-            catch(err){window.location.assign(url);}
+            try { ThunkableWebviewerExtension.postMessage('OPEN_IN_BROWSER::' + url); }
+            catch (err) { window.location.assign(url); }
           }
         });
-        linkHandlerAttached=true;
+        linkHandlerAttached = true;
       }
     }
 
-    let firstMessageReceived=false;let readyPingerId=null;
-ThunkableWebviewerExtension.receiveMessage(function (msg) {
-  try {
-    // 🌀 Optional: Triggered before first /ask call to show spinner
-    if (msg === 'SHOW_LOADING') {
-      loading.style.display = 'block';
-      return;
+    // ✅ restored working receiveMessage logic
+    ThunkableWebviewerExtension.receiveMessage(function (msg) {
+      try {
+        firstMessageReceived = true;
+        if (readyPingerId) { clearInterval(readyPingerId); readyPingerId = null; }
+        const payload = (msg && typeof msg === 'object' && 'payload' in msg) ? msg.payload : msg;
+        safeRender(payload);
+      } catch (err) {
+        outEl.textContent = 'Render error: ' + err;
+        debug('Render error: ' + (err && err.stack || err));
+      }
+    });
+
+    function pingReady() {
+      try { ThunkableWebviewerExtension.postMessage('ready'); }
+      catch (e) { debug('postMessage error:' + e); }
     }
 
-    firstMessageReceived = true;
-    if (readyPingerId) {
-      clearInterval(readyPingerId);
-      readyPingerId = null;
-    }
-
-    // ✅ Normal message rendering
-    const payload =
-      typeof msg === 'object'
-        ? msg.payload
-        : typeof msg === 'string'
-        ? msg
-        : msg?.payload?.msg || msg;
-    safeRender(payload);
-  } catch (err) {
-    outEl.textContent = 'Render error: ' + (err && err.stack ? err.stack : err);
-    debug('Render error:', err);
-  }
-});
-
-    function pingReady(){
-      try{ThunkableWebviewerExtension.postMessage('ready');}
-      catch(e){debug('postMessage error:'+e);}
-    }
-    window.addEventListener('DOMContentLoaded',()=>{
+    window.addEventListener('DOMContentLoaded', () => {
       pingReady();
-      let tries=0;
-      readyPingerId=setInterval(()=>{
-        if(firstMessageReceived||tries>=10){clearInterval(readyPingerId);readyPingerId=null;return;}
-        pingReady();tries++;
-      },600);
+      let tries = 0;
+      readyPingerId = setInterval(() => {
+        if (firstMessageReceived || tries >= 10) {
+          clearInterval(readyPingerId);
+          readyPingerId = null;
+          return;
+        }
+        pingReady(); tries++;
+      }, 600);
     });
 
-copyBtn.onclick = () => {
-  try {
-    // ✅ Copy the full accumulated exchange (all questions + answers)
-    const fullText = copyBtn.dataset.fulltext || outEl.innerText;
-    navigator.clipboard.writeText(fullText.trim());
+    // ✅ Copy button
+    copyBtn.onclick = () => {
+      try {
+        const fullText = outEl.innerText.trim();
+        navigator.clipboard.writeText(fullText);
+        copyBtn.textContent = '✅ Copied All';
+        setTimeout(() => (copyBtn.textContent = 'Copy All'), 1500);
+      } catch (err) {
+        console.error('Copy failed:', err);
+        copyBtn.textContent = '⚠️ Copy Error';
+        setTimeout(() => (copyBtn.textContent = 'Copy All'), 2000);
+      }
+    };
 
-    copyBtn.textContent = "✅ Copied All";
-    setTimeout(() => (copyBtn.textContent = "Copy All"), 1500);
-  } catch (err) {
-    console.error("Copy failed:", err);
-    copyBtn.textContent = "⚠️ Copy Error";
-    setTimeout(() => (copyBtn.textContent = "Copy All"), 2000);
-  }
-};
-
-    // Feedback to user
-    copyBtn.textContent = "✅ Copied All";
-    setTimeout(() => (copyBtn.textContent = "Copy All"), 1500);
-  } catch (err) {
-    console.error("Copy failed:", err);
-    copyBtn.textContent = "⚠️ Copy Error";
-    setTimeout(() => (copyBtn.textContent = "Copy All"), 2000);
-  }
-};
-followupBtn.onclick = async () => {
-  const q = followupText.value.trim();
-  if (!q) return;
-
-  // ✅ Step 1 – Show “Sent” check mark
-  followupBtn.innerHTML = '✅ Sent';
-  followupBtn.disabled = true;
-
-  // ✅ Step 2 – Immediately show “Answer coming…” animation
-  setTimeout(() => {
-    loading.style.display = 'block';
-  }, 600);
-
-  try {
-    // Send request to backend
-    const res = await fetch('https://web-production-43cb.up.railway.app/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: q,
-        context: lastAnswer,
-        followup: true
-      })
-    });
-
-    // ✅ Step 3 – Wait for JSON, then render answer
-    const data = await res.json();
-    loading.style.display = 'none';
-    safeRender(data.answer || '(no response)');
-  } catch (err) {
-    loading.style.display = 'none';
-    safeRender('⚠️ Error sending follow-up: ' + err.message);
-  }
-
-  // ✅ Step 4 – Reset button and input
-  followupBtn.innerHTML = 'Submit Follow-Up';
-  followupBtn.disabled = false;
-  followupText.value = '';
-};
+    // ✅ Follow-up button
+    followupBtn.onclick = async () => {
+      const q = followupText.value.trim();
+      if (!q) return;
+      followupBtn.innerHTML = '✅ Sent';
+      followupBtn.disabled = true;
+      loading.style.display = 'block';
+      try {
+        const res = await fetch('https://web-production-43cb.up.railway.app/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q, context: lastAnswer, followup: true })
+        });
+        const data = await res.json();
+        loading.style.display = 'none';
+        safeRender(data.answer || '(no response)');
+      } catch (err) {
+        loading.style.display = 'none';
+        safeRender('⚠️ Error sending follow-up: ' + err.message);
+      }
+      followupBtn.innerHTML = 'Submit Follow-Up';
+      followupBtn.disabled = false;
+      followupText.value = '';
+    };
   </script>
 </body>
 </html>
