@@ -31,7 +31,6 @@
     margin: 0;
   }
 
-  /* ✅ English-only subtitle, bright highlight */
   .subtitle {
     font-size: 14px;
     color: #6EC1FF;
@@ -78,7 +77,6 @@
 
   button:hover { background-color: #ffd500; }
 
-  /* ✅ Toast popup styling */
   #toast {
     visibility: hidden;
     min-width: 220px;
@@ -103,7 +101,6 @@
   @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
   @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 10px; opacity: 0;} }
 
-  /* ✅ Animated dots for “Answer Coming…” */
   .dots span {
     animation: blink 1.4s infinite both;
   }
@@ -115,7 +112,6 @@
 
 <body>
   <header>
-    <!-- ❌ Removed logo -->
     <h1>Dalhousie COMPAiSS</h1>
     <div class="subtitle">Write in any language</div>
   </header>
@@ -125,10 +121,8 @@
     <button id="submitBtn">Submit</button>
   </div>
 
-  <!-- ❌ Removed Phase 1 footer -->
   <div id="toast">✅ Sent</div>
 
-  <!-- ✅ Thunkable bridge -->
   <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js"></script>
 
   <script>
@@ -136,23 +130,29 @@
     const toast = document.getElementById("toast");
     const submitBtn = document.getElementById("submitBtn");
 
+    /* ---------- Bridge helpers ---------- */
     function isBridgeReady() {
       return typeof window.ThunkableWebviewerExtension !== "undefined";
     }
 
-    function showToast(text, duration = 2000) {
-      toast.innerHTML = text;
+    function whenBridgeReady(fn) {
+      if (isBridgeReady()) {
+        fn();
+      } else {
+        document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
+      }
+    }
+
+    function showToast(text, duration = 2000, asHTML = false) {
+      if (asHTML) toast.innerHTML = text;
+      else toast.textContent = text;
       toast.className = "show";
       setTimeout(() => {
         toast.className = toast.className.replace("show", "");
       }, duration);
     }
 
-    function whenBridgeReady(fn) {
-      if (isBridgeReady()) fn();
-      else document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
-    }
-
+    /* ---------- Main send function ---------- */
     function sendInput() {
       const message = inputBox.value.trim();
       if (!message) {
@@ -160,26 +160,34 @@
         return;
       }
 
-      whenBridgeReady(() => {
-        try {
-          // ✅ Step 1: send to Thunkable bridge
-          window.ThunkableWebviewerExtension.postMessage(message);
+      let sent = false;
 
-          // ✅ Step 2: show “Sent” then “Answer Coming…”
+      const trySend = () => {
+        if (!isBridgeReady() || sent) return;
+        try {
+          window.ThunkableWebviewerExtension.postMessage(message);
+          sent = true;
           showToast("✅ Sent", 1200);
           setTimeout(() => {
-            toast.innerHTML = "💬 Answer Coming<span class='dots'><span>.</span><span>.</span><span>.</span></span>";
-            toast.className = "show";
+            showToast("💬 Answer Coming<span class='dots'><span>.</span><span>.</span><span>.</span></span>", 999999, true);
           }, 1300);
         } catch (err) {
-          console.log("Bridge error:", err);
+          console.error("Bridge error:", err);
           showToast("⚠️ Bridge Error", 2000);
         }
-      });
+      };
+
+      whenBridgeReady(trySend);
+
+      // Fallback retry if the bridge event never fires
+      setTimeout(() => {
+        if (!sent && isBridgeReady()) trySend();
+      }, 1800);
 
       inputBox.value = "";
     }
 
+    /* ---------- Event listeners ---------- */
     inputBox.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -188,6 +196,7 @@
     });
 
     submitBtn.addEventListener("click", sendInput);
+
     console.log("Bridge script loaded:", isBridgeReady());
   </script>
 </body>
