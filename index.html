@@ -49,9 +49,9 @@
     .debug{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       white-space:pre-wrap;margin-top:8px;color:#bfe1ff;display:none;}
 
-    /* 🔹 NEW follow-up UI */
+    /* 🔹 Follow-up UI */
     #followup-box{
-      margin-top:24px;padding:12px;background:#102f60;border-radius:8px;
+      margin-top:18px;padding:12px;background:#102f60;border-radius:8px;
       border:1px solid var(--accent);
     }
     #followup-text{
@@ -126,6 +126,8 @@
           attributes:{rel:'noopener',target:'_blank'}});
       }}catch(e){debug('linkify error:'+e);}
       const clean2=DOMPurify.sanitize(linked,{ADD_ATTR:['target','rel']});
+      // ✅ clear placeholder on first render
+      if(outEl.textContent.includes('Waiting for content')) outEl.innerHTML='';
       outEl.innerHTML+=(outEl.innerHTML?'<hr>':'')+clean2;
       lastAnswer=outEl.innerText;
       outEl.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener';});
@@ -170,7 +172,12 @@
       },600);
     });
 
-    copyBtn.onclick=()=>{navigator.clipboard.writeText(outEl.innerText);copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy All',1500);};
+    // ✅ Copy only answers
+    copyBtn.onclick=()=>{
+      navigator.clipboard.writeText(lastAnswer||'');
+      copyBtn.textContent='Copied!';
+      setTimeout(()=>copyBtn.textContent='Copy All',1500);
+    };
 
     followupBtn.onclick=async()=>{
       const q=followupText.value.trim();
