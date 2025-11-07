@@ -238,12 +238,18 @@ ThunkableWebviewerExtension.receiveMessage(function (msg) {
 
 copyBtn.onclick = () => {
   try {
-    // Copy rendered answer (includes bold, links, etc.)
-    const answerHTML = outEl.innerHTML;
-    const tempEl = document.createElement("div");
-    tempEl.innerHTML = answerHTML;
-    const text = tempEl.innerText; // strips tags safely
-    navigator.clipboard.writeText(text);
+    // ✅ Copy the full accumulated exchange (all questions + answers)
+    const fullText = copyBtn.dataset.fulltext || outEl.innerText;
+    navigator.clipboard.writeText(fullText.trim());
+
+    copyBtn.textContent = "✅ Copied All";
+    setTimeout(() => (copyBtn.textContent = "Copy All"), 1500);
+  } catch (err) {
+    console.error("Copy failed:", err);
+    copyBtn.textContent = "⚠️ Copy Error";
+    setTimeout(() => (copyBtn.textContent = "Copy All"), 2000);
+  }
+};
 
     // Feedback to user
     copyBtn.textContent = "✅ Copied All";
