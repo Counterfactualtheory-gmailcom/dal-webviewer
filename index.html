@@ -264,19 +264,20 @@ followupBtn.onclick = async () => {
   const q = followupText.value.trim();
   if (!q) return;
 
-  // ✅ Step 1 – Flash "Sent" confirmation for user feedback
+  // ✅ Step 1 – Show “Sent” check mark
   followupBtn.innerHTML = '✅ Sent';
-  setTimeout(() => followupBtn.innerHTML = 'Submit Follow-Up', 1200);
-
-  // ✅ Step 2 – Show "Answer coming..." animated dots while backend processes
-  loading.style.display = 'block';
   followupBtn.disabled = true;
 
+  // ✅ Step 2 – Immediately show “Answer coming…” animation
+  setTimeout(() => {
+    loading.style.display = 'block';
+  }, 600);
+
   try {
+    // Send request to backend
     const res = await fetch('https://web-production-43cb.up.railway.app/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Preserve full context for labeled / follow-up answers
       body: JSON.stringify({
         question: q,
         context: lastAnswer,
@@ -284,14 +285,17 @@ followupBtn.onclick = async () => {
       })
     });
 
+    // ✅ Step 3 – Wait for JSON, then render answer
     const data = await res.json();
+    loading.style.display = 'none';
     safeRender(data.answer || '(no response)');
   } catch (err) {
+    loading.style.display = 'none';
     safeRender('⚠️ Error sending follow-up: ' + err.message);
   }
 
-  // ✅ Step 3 – Hide loading animation and reset form
-  loading.style.display = 'none';
+  // ✅ Step 4 – Reset button and input
+  followupBtn.innerHTML = 'Submit Follow-Up';
   followupBtn.disabled = false;
   followupText.value = '';
 };
