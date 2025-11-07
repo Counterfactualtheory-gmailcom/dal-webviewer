@@ -201,9 +201,24 @@ ThunkableWebviewerExtension.receiveMessage(function (msg) {
       },600);
     });
 
-    /* Copy & Follow-up logic */
-    copyBtn.onclick=()=>{navigator.clipboard.writeText(outEl.innerText);copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy All',1500);};
+copyBtn.onclick = () => {
+  try {
+    // Copy rendered answer (includes bold, links, etc.)
+    const answerHTML = outEl.innerHTML;
+    const tempEl = document.createElement("div");
+    tempEl.innerHTML = answerHTML;
+    const text = tempEl.innerText; // strips tags safely
+    navigator.clipboard.writeText(text);
 
+    // Feedback to user
+    copyBtn.textContent = "✅ Copied All";
+    setTimeout(() => (copyBtn.textContent = "Copy All"), 1500);
+  } catch (err) {
+    console.error("Copy failed:", err);
+    copyBtn.textContent = "⚠️ Copy Error";
+    setTimeout(() => (copyBtn.textContent = "Copy All"), 2000);
+  }
+};
 followupBtn.onclick = async () => {
   const q = followupText.value.trim();
   if (!q) return;
