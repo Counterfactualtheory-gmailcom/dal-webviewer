@@ -142,7 +142,8 @@
       const enriched=enrichBareLinks(linked);
       const clean2=DOMPurify.sanitize(enriched,{ADD_ATTR:['target','rel']});
       outEl.innerHTML+=(outEl.innerHTML?'<hr>':'')+clean2;
-      lastAnswer=outEl.innerText;
+      lastAnswer = outEl.innerText;  // keep for backend follow-up
+      copyBtn.dataset.fulltext = outEl.innerText;  // store full accumulated text for Copy All
       outEl.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener';});
       if(!linkHandlerAttached){
         outEl.addEventListener('click',e=>{
