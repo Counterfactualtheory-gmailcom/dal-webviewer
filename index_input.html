@@ -98,7 +98,7 @@
 
   #toast.show {
     visibility: visible;
-    animation: fadein 0.3s, fadeout 0.3s 1.5s;
+    animation: fadein 0.3s, fadeout 0.3s 1.8s;
   }
 
   @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
@@ -140,14 +140,12 @@
 
   function whenBridgeReady(fn) {
     if (isBridgeReady()) fn();
-    else
-      document.addEventListener(
-        "ThunkableWebviewerExtensionReady",
-        fn,
-        { once: true }
-      );
+    else {
+      document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
+    }
   }
 
+  // ✅ NEW robust send sequence
   function sendInput() {
     const message = inputBox.value.trim();
     if (!message) {
@@ -157,19 +155,25 @@
 
     whenBridgeReady(() => {
       try {
-        // ✅ Step 1 — send immediately
-        window.ThunkableWebviewerExtension.postMessage(message);
+        // Step 1 — confirm bridge initialized
+        console.log("Bridge ready, sending:", message);
 
-        // ✅ Step 2 — retry once after short delay (safeguard)
+        // Step 2 — tell WebViewer answer page to get ready
+        window.ThunkableWebviewerExtension.postMessage("READY_FOR_MESSAGE");
+
+        // Step 3 — send question (twice, to ensure delivery)
         setTimeout(() => {
           window.ThunkableWebviewerExtension.postMessage(message);
-        }, 800);
+        }, 300);
+        setTimeout(() => {
+          window.ThunkableWebviewerExtension.postMessage(message);
+        }, 900);
 
-        // ✅ Step 3 — show user feedback
+        // Step 4 — feedback to user
         showToast("✅ Sent");
         setTimeout(() => showToast("💬 Answer Coming...", 2000), 1000);
       } catch (err) {
-        console.log("Bridge error:", err);
+        console.error("Bridge error:", err);
         showToast("⚠️ Bridge Error");
       }
     });
