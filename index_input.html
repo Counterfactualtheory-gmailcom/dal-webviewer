@@ -150,14 +150,24 @@
         return;
       }
 
-      whenBridgeReady(() => {
-        try {
-          window.ThunkableWebviewerExtension.postMessage(message);
-          showToast();
-        } catch (err) {
-          console.log("Bridge error:", err);
-        }
-      });
+whenBridgeReady(() => {
+  try {
+    window.ThunkableWebviewerExtension.postMessage(message);
+    showToast();
+
+    // ✅ NEW: Flash “Answer Coming…” after the green check
+    setTimeout(() => {
+      toast.textContent = "💬 Answer Coming...";
+      toast.className = "show";
+      setTimeout(() => {
+        toast.className = toast.className.replace("show", "");
+        toast.textContent = "✅ Sent"; // reset to default
+      }, 2000);
+    }, 1800);
+  } catch (err) {
+    console.log("Bridge error:", err);
+  }
+});
 
       inputBox.value = "";
     }
