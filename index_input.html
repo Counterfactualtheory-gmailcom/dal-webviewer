@@ -121,67 +121,74 @@
 
   <div id="toast">✅ Sent</div>
 
-  <script>
-    const inputBox = document.getElementById("inputBox");
-    const toast = document.getElementById("toast");
-    const submitBtn = document.getElementById("submitBtn");
+<script>
+  const inputBox = document.getElementById("inputBox");
+  const toast = document.getElementById("toast");
+  const submitBtn = document.getElementById("submitBtn");
 
-    function isBridgeReady() {
-      return (typeof window.ThunkableWebviewerExtension !== "undefined");
-    }
-
-    function showToast() {
-      toast.className = "show";
-      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1800);
-    }
-
-    function whenBridgeReady(fn) {
-      if (isBridgeReady()) {
-        fn();
-      } else {
-        document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
-      }
-    }
-
-    function sendInput() {
-      const message = inputBox.value.trim();
-      if (!message) {
-        alert("Please enter a question or issue.");
-        return;
-      }
-
-whenBridgeReady(() => {
-  try {
-    window.ThunkableWebviewerExtension.postMessage(message);
-    showToast();
-
-    // ✅ NEW: Flash “Answer Coming…” after the green check
-    setTimeout(() => {
-      toast.textContent = "💬 Answer Coming...";
-      toast.className = "show";
-      setTimeout(() => {
-        toast.className = toast.className.replace("show", "");
-        toast.textContent = "✅ Sent"; // reset to default
-      }, 2000);
-    }, 1800);
-  } catch (err) {
-    console.log("Bridge error:", err);
+  function isBridgeReady() {
+    return typeof window.ThunkableWebviewerExtension !== "undefined";
   }
-});
 
-      inputBox.value = "";
+  function showToast(text, duration = 1800) {
+    toast.textContent = text;
+    toast.className = "show";
+    setTimeout(() => {
+      toast.className = toast.className.replace("show", "");
+    }, duration);
+  }
+
+  function whenBridgeReady(fn) {
+    if (isBridgeReady()) fn();
+    else
+      document.addEventListener(
+        "ThunkableWebviewerExtensionReady",
+        fn,
+        { once: true }
+      );
+  }
+
+  function sendInput() {
+    const message = inputBox.value.trim();
+    if (!message) {
+      alert("Please enter a question or issue.");
+      return;
     }
 
-    inputBox.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendInput();
+    whenBridgeReady(() => {
+      try {
+        // ✅ Step 1 — send immediately
+        window.ThunkableWebviewerExtension.postMessage(message);
+
+        // ✅ Step 2 — retry once after short delay (safeguard)
+        setTimeout(() => {
+          window.ThunkableWebviewerExtension.postMessage(message);
+        }, 800);
+
+        // ✅ Step 3 — show user feedback
+        showToast("✅ Sent");
+        setTimeout(() => showToast("💬 Answer Coming...", 2000), 1000);
+      } catch (err) {
+        console.log("Bridge error:", err);
+        showToast("⚠️ Bridge Error");
       }
     });
 
-    submitBtn.addEventListener("click", sendInput);
+    inputBox.value = "";
+  }
 
-    console.log("Bridge script loaded:", isBridgeReady());
-  </script>
+  // Allow Enter key to submit
+  inputBox.addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendInput();
+    }
+  });
+
+  // Click handler for Submit button
+  submitBtn.addEventListener("click", sendInput);
+
+  console.log("Bridge script loaded:", isBridgeReady());
+</script>
 </body>
 </html>
