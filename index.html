@@ -172,12 +172,24 @@
       },600);
     });
 
-    // ✅ Copy only answers
-    copyBtn.onclick=()=>{
-      navigator.clipboard.writeText(lastAnswer||'');
-      copyBtn.textContent='Copied!';
-      setTimeout(()=>copyBtn.textContent='Copy All',1500);
-    };
+// ✅ Copy the full exchange (all visible answers)
+copyBtn.onclick = () => {
+  try {
+    const content = document.getElementById("out").innerText.trim();
+    if (!content) {
+      alert("No response yet to copy.");
+      return;
+    }
+    navigator.clipboard.writeText(content)
+      .then(() => {
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = "Copy All"), 1500);
+      })
+      .catch(() => alert("Clipboard not supported in this environment."));
+  } catch (err) {
+    console.log("Copy error:", err);
+  }
+};
 
     followupBtn.onclick=async()=>{
       const q=followupText.value.trim();
