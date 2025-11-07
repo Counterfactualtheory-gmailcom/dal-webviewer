@@ -160,16 +160,33 @@
     }
 
     let firstMessageReceived=false;let readyPingerId=null;
-    ThunkableWebviewerExtension.receiveMessage(function(msg){
-      try{
-        firstMessageReceived=true;
-        if(readyPingerId){clearInterval(readyPingerId);readyPingerId=null;}
-        const payload=(msg&&typeof msg==='object'&&'payload'in msg)?msg.payload:msg;
-        safeRender(payload);
-      }catch(err){
-        outEl.textContent='Render error:'+err;debug('Render error:'+(err&&err.stack||err));
-      }
-    });
+ThunkableWebviewerExtension.receiveMessage(function (msg) {
+  try {
+    // 🌀 Optional: Triggered before first /ask call to show spinner
+    if (msg === 'SHOW_LOADING') {
+      loading.style.display = 'block';
+      return;
+    }
+
+    firstMessageReceived = true;
+    if (readyPingerId) {
+      clearInterval(readyPingerId);
+      readyPingerId = null;
+    }
+
+    // ✅ Normal message rendering
+    const payload =
+      typeof msg === 'object'
+        ? msg.payload
+        : typeof msg === 'string'
+        ? msg
+        : msg?.payload?.msg || msg;
+    safeRender(payload);
+  } catch (err) {
+    outEl.textContent = 'Render error: ' + (err && err.stack ? err.stack : err);
+    debug('Render error:', err);
+  }
+});
 
     function pingReady(){
       try{ThunkableWebviewerExtension.postMessage('ready');}
