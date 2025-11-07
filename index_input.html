@@ -9,8 +9,8 @@
     margin: 0;
     padding: 0;
     font-family: "Roboto", sans-serif;
-    background-color: #9B9B9B; /* Dalhousie Grey */
-    color: #1e90ff; /* Blue accent */
+    background-color: #0F4079; /* Dalhousie Blue */
+    color: #f8c600;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -33,13 +33,13 @@
 
   .subtitle {
     font-size: 14px;
-    color: #1e90ff;
+    color: #6EC1FF; /* Light blue highlight */
     margin-top: 4px;
   }
 
   .input-box {
     background-color: #111;
-    border: 2px solid #1e90ff;
+    border: 2px solid #f8c600;
     border-radius: 12px;
     padding: 16px;
     width: 85%;
@@ -47,7 +47,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    box-shadow: 0 0 8px rgba(30, 144, 255, 0.3);
+    box-shadow: 0 0 8px rgba(248, 198, 0, 0.3);
   }
 
   textarea {
@@ -64,8 +64,8 @@
   }
 
   button {
-    background-color: #1e90ff;
-    color: #fff;
+    background-color: #f8c600;
+    color: #000;
     font-weight: 600;
     border: none;
     border-radius: 8px;
@@ -76,15 +76,15 @@
   }
 
   button:hover {
-    background-color: #3399ff;
+    background-color: #ffd500;
   }
 
   /* ✅ Toast popup styling */
   #toast {
     visibility: hidden;
     min-width: 200px;
-    background-color: #1e90ff;
-    color: #fff;
+    background-color: #f8c600;
+    color: #000;
     text-align: center;
     border-radius: 6px;
     padding: 12px;
@@ -98,7 +98,7 @@
 
   #toast.show {
     visibility: visible;
-    animation: fadein 0.3s, fadeout 0.3s 1.5s;
+    animation: fadein 0.3s, fadeout 0.3s 1.8s;
   }
 
   @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
@@ -121,57 +121,78 @@
 
   <div id="toast">✅ Sent</div>
 
-  <script>
-    const inputBox = document.getElementById("inputBox");
-    const toast = document.getElementById("toast");
-    const submitBtn = document.getElementById("submitBtn");
+<script>
+  const inputBox = document.getElementById("inputBox");
+  const toast = document.getElementById("toast");
+  const submitBtn = document.getElementById("submitBtn");
 
-    function isBridgeReady() {
-      return (typeof window.ThunkableWebviewerExtension !== "undefined");
+  function isBridgeReady() {
+    return typeof window.ThunkableWebviewerExtension !== "undefined";
+  }
+
+  function showToast(text, duration = 1800) {
+    toast.textContent = text;
+    toast.className = "show";
+    setTimeout(() => {
+      toast.className = toast.className.replace("show", "");
+    }, duration);
+  }
+
+  function whenBridgeReady(fn) {
+    if (isBridgeReady()) fn();
+    else {
+      document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
+    }
+  }
+
+  // ✅ NEW robust send sequence
+  function sendInput() {
+    const message = inputBox.value.trim();
+    if (!message) {
+      alert("Please enter a question or issue.");
+      return;
     }
 
-    function showToast() {
-      toast.className = "show";
-      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1800);
-    }
+    whenBridgeReady(() => {
+      try {
+        // Step 1 — confirm bridge initialized
+        console.log("Bridge ready, sending:", message);
 
-    function whenBridgeReady(fn) {
-      if (isBridgeReady()) {
-        fn();
-      } else {
-        document.addEventListener("ThunkableWebviewerExtensionReady", fn, { once: true });
-      }
-    }
+        // Step 2 — tell WebViewer answer page to get ready
+        window.ThunkableWebviewerExtension.postMessage("READY_FOR_MESSAGE");
 
-    function sendInput() {
-      const message = inputBox.value.trim();
-      if (!message) {
-        alert("Please enter a question or issue.");
-        return;
-      }
-
-      whenBridgeReady(() => {
-        try {
+        // Step 3 — send question (twice, to ensure delivery)
+        setTimeout(() => {
           window.ThunkableWebviewerExtension.postMessage(message);
-          showToast();
-        } catch (err) {
-          console.log("Bridge error:", err);
-        }
-      });
+        }, 300);
+        setTimeout(() => {
+          window.ThunkableWebviewerExtension.postMessage(message);
+        }, 900);
 
-      inputBox.value = "";
-    }
-
-    inputBox.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendInput();
+        // Step 4 — feedback to user
+        showToast("✅ Sent");
+        setTimeout(() => showToast("💬 Answer Coming...", 2000), 1000);
+      } catch (err) {
+        console.error("Bridge error:", err);
+        showToast("⚠️ Bridge Error");
       }
     });
 
-    submitBtn.addEventListener("click", sendInput);
+    inputBox.value = "";
+  }
 
-    console.log("Bridge script loaded:", isBridgeReady());
-  </script>
+  // Allow Enter key to submit
+  inputBox.addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendInput();
+    }
+  });
+
+  // Click handler for Submit button
+  submitBtn.addEventListener("click", sendInput);
+
+  console.log("Bridge script loaded:", isBridgeReady());
+</script>
 </body>
 </html>
